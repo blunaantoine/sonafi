@@ -1,0 +1,39 @@
+// Prisma schema for the Sommet Sonafi pause management system
+// https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// A summit participant. ID is human-readable (ID0001..ID0500).
+model Participant {
+  /// Human-readable unique id, e.g. "ID0001".
+  id        String   @id
+  /// Full display name of the participant (defaults to "Participant ID0001" until imported).
+  name      String
+  createdAt DateTime @default(now())
+
+  pauses Pause[]
+}
+
+/// A single validated pause taken by a participant on a given day.
+model Pause {
+  id           Int        @id @default(autoincrement())
+  participantId String
+  /// Summit day, 1, 2 or 3.
+  day          Int
+  /// Pause type: "cafe", "dejeuner" or "jeux".
+  pauseType    String
+  timestamp    DateTime   @default(now())
+
+  participant Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@unique([participantId, day, pauseType], map: "pauses_participant_day_pause_unique")
+  @@index([day, pauseType])
+  @@index([participantId])
+}
