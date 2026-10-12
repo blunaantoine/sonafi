@@ -12,13 +12,16 @@ export interface BadgeCardProps {
 /**
  * A single printable badge for the Sommet Sonafi.
  *
- * The QR code payload is the plain participant id string (e.g. "ID0042").
- * The Scan tab scans this exact value, so do NOT change the payload format
- * without coordinating with the scan tab.
+ * The QR code payload is the participant's random, non-sequential token (NOT
+ * the human-readable id) so badges can't be guessed or duplicated. The id
+ * (ID0042) is shown on the badge for management only. The Scan tab scans the
+ * token; the scan/entry APIs look up the participant by token.
  */
 export function BadgeCard({ participant, className }: BadgeCardProps) {
   const displayName =
     participant.name?.trim() || `Participant ${participant.id}`;
+  // The QR encodes the secret token (falls back to the id if no token yet).
+  const qrValue = participant.token || participant.id;
 
   return (
     <div
@@ -41,8 +44,8 @@ export function BadgeCard({ participant, className }: BadgeCardProps) {
       <div className="flex flex-1 flex-col items-center justify-center gap-1.5 px-2 py-3">
         <div className="rounded-md bg-white p-1.5 ring-1 ring-emerald-100">
           <QRCodeSVG
-            // Plain participant id — the Scan tab scans this exact string.
-            value={participant.id}
+            // The secret token — non-sequential, can't be guessed.
+            value={qrValue}
             size={120}
             level="M"
             marginSize={1}

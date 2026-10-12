@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 
 const PauseSchema = z.object({
+  /** The scanned token (random, non-sequential) OR a legacy ID like "ID0042". */
   participantId: z.string().min(1),
   day: z.union([z.literal(1), z.literal(2), z.literal(3)]),
   pauseType: z.enum(["cafe", "dejeuner", "jeux"]),
@@ -31,11 +32,17 @@ export async function POST(req: NextRequest) {
 
   const { participantId, day, pauseType } = parsed.data;
 
-  // Make sure the participant exists.
-  const participant = await db.participant.findUnique({
-    where: { id: participantId },
-    select: { id: true, name: true },
-  });
+  // Look up the participant by the scanned value: try the unique token first
+  // (the QR content), then fall back to the human-readable id for manual entry.
+  const participant =
+    (await db.participant.findUnique({
+      where: { token: participantId },
+      select: { id: true, name: true },
+    })) ??
+    (await db.participant.findUnique({
+      where: { id: participantId },
+      select: { id: true, name: true },
+    }));
   if (!participant) {
     return NextResponse.json(
       {
@@ -49,7 +56,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const pause = await db.pause.create({
-      data: { participantId, day, pauseType },
+      data: { participantId: participant.id, day, pauseType },
     });
     return NextResponse.json({
       success: true,

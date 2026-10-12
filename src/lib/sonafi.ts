@@ -103,6 +103,32 @@ export function parseParticipantId(id: string): number {
   return m ? Number(m[1]) : NaN;
 }
 
+// ---- Participant tokens (QR content) ---------------------------------------
+// The QR code on each badge encodes a random, non-sequential token so badges
+// can't be guessed or duplicated (knowing ID0042 doesn't help guess another).
+// The human-readable ID (ID0042) stays on the badge for management, but the
+// scanned value is the secret token.
+
+/** Unambiguous alphabet (no 0/O/1/I/L) for readable tokens. */
+const TOKEN_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+const TOKEN_LENGTH = 8;
+
+/** Generate a random participant token, e.g. "K7Q2M9XH". */
+export function generateToken(): string {
+  const arr = new Uint32Array(TOKEN_LENGTH);
+  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+    crypto.getRandomValues(arr);
+  } else {
+    // Fallback (non-crypto) — only used in very old runtimes.
+    for (let i = 0; i < TOKEN_LENGTH; i += 1) arr[i] = Math.floor(Math.random() * 0xffffffff);
+  }
+  let out = "";
+  for (let i = 0; i < TOKEN_LENGTH; i += 1) {
+    out += TOKEN_ALPHABET[arr[i] % TOKEN_ALPHABET.length];
+  }
+  return out;
+}
+
 /** Format an ISO timestamp for French display, e.g. "22/10 09:42". */
 export function formatTimestamp(iso: string | Date): string {
   const d = typeof iso === "string" ? new Date(iso) : iso;
@@ -118,6 +144,8 @@ export function formatTimestamp(iso: string | Date): string {
 
 export interface Participant {
   id: string;
+  /** Random, non-guessable token encoded in the QR code. */
+  token?: string;
   name: string;
 }
 

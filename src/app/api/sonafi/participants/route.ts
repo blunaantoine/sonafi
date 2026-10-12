@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { formatParticipantId, generateToken } from "@/lib/sonafi";
 
 /** GET /api/sonafi/participants — list all participants (with optional search). */
 export async function GET(req: NextRequest) {
@@ -14,6 +15,7 @@ export async function GET(req: NextRequest) {
           OR: [
             { id: { contains: search } },
             { name: { contains: search } },
+            { token: { contains: search } },
           ],
         }
       : undefined,
@@ -46,7 +48,7 @@ export async function POST(req: NextRequest) {
 
   if (body.seed) {
     for (let i = 1; i <= 500; i += 1) {
-      const id = `ID${String(i).padStart(4, "0")}`;
+      const id = formatParticipantId(i);
       ops.push({ id, name: `Participant ${id}` });
     }
   }
@@ -67,14 +69,25 @@ export async function POST(req: NextRequest) {
   }
 
   // Upsert so import can be re-run safely (e.g. updating real names).
+  // Fetch existing tokens so we don't generate a colliding one for new rows.
+  const existingTokens = new Set(
+    (await db.participant.findMany({ select: { token: true } })).map((p) => p.token),
+  );
   const result = await db.$transaction(
-    ops.map((op) =>
-      db.participant.upsert({
+    ops.map((op) => {
+      // Generate a unique token only for new participants (existing ones keep their token).
+      let token = "";
+      // We can't know here if the row exists, so generate defensively and let
+      // the upsert's `update` branch ignore the token field for existing rows.
+      token = generateToken();
+      while (existingTokens.has(token)) token = generateToken();
+      existingTokens.add(token);
+      return db.participant.upsert({
         where: { id: op.id },
         update: { name: op.name },
-        create: { id: op.id, name: op.name },
-      }),
-    ),
+        create: { id: op.id, token, name: op.name },
+      });
+    }),
     { timeout: 20000 },
   );
 

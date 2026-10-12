@@ -10,10 +10,14 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-/// A summit participant. ID is human-readable (ID0001..ID0500).
+/// A summit participant. ID is human-readable (ID0001..ID0500); the token is a
+/// random, non-sequential secret embedded in the QR code so badges can't be
+/// guessed or duplicated.
 model Participant {
   /// Human-readable unique id, e.g. "ID0001".
   id        String   @id
+  /// Random, non-guessable token encoded in the QR code (8 chars, unambiguous alphabet).
+  token     String   @unique
   /// Full display name of the participant (defaults to "Participant ID0001" until imported).
   name      String
   createdAt DateTime @default(now())

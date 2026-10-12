@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import {
   DEFAULT_TOTAL_PARTICIPANTS,
   formatParticipantId,
+  generateToken,
   parseParticipantId,
 } from "@/lib/sonafi";
 
@@ -117,15 +118,23 @@ export async function PUT(req: NextRequest) {
     const existingIds = new Set(
       (
         await tx.participant.findMany({
-          select: { id: true },
+          select: { id: true, token: true },
         })
       ).map((p) => p.id),
     );
-    const toCreate: { id: string; name: string }[] = [];
+    // Track existing tokens so new ones don't collide.
+    const existingTokens = new Set(
+      (await tx.participant.findMany({ select: { token: true } })).map((p) => p.token),
+    );
+    const toCreate: { id: string; token: string; name: string }[] = [];
     for (let i = 1; i <= totalParticipants; i += 1) {
       const id = formatParticipantId(i);
       if (!existingIds.has(id)) {
-        toCreate.push({ id, name: `Participant ${id}` });
+        // Generate a unique, non-guessable token for the QR code.
+        let token = generateToken();
+        while (existingTokens.has(token)) token = generateToken();
+        existingTokens.add(token);
+        toCreate.push({ id, token, name: `Participant ${id}` });
       }
     }
     // Chunk createMany to keep the query reasonable (SQLite variable limits).

@@ -37,10 +37,17 @@ export async function POST(req: NextRequest) {
 
   const { participantId, day } = parsed.data;
 
-  const participant = await db.participant.findUnique({
-    where: { id: participantId },
-    select: { id: true, name: true },
-  });
+  // Look up the participant by the scanned value: try the unique token first
+  // (the QR content), then fall back to the human-readable id for manual entry.
+  const participant =
+    (await db.participant.findUnique({
+      where: { token: participantId },
+      select: { id: true, name: true },
+    })) ??
+    (await db.participant.findUnique({
+      where: { id: participantId },
+      select: { id: true, name: true },
+    }));
   if (!participant) {
     return NextResponse.json(
       {
@@ -54,7 +61,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const entry = await db.entry.create({
-      data: { participantId, day },
+      data: { participantId: participant.id, day },
     });
     return NextResponse.json({
       success: true,
