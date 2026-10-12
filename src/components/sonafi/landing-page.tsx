@@ -98,10 +98,7 @@ export function LandingPage({
 
   return (
     <div
-      // Break out of the host `main`'s `px-4 sm:px-6 py-5` padding so the navy
-      // header spans the full viewport width (matching the mockup). At sm+
-      // we re-centre and cap the width at max-w-md so desktop stays tidy.
-      className="flex min-h-screen max-w-md flex-col -mx-4 sm:mx-auto -my-5"
+      className="mx-auto flex min-h-screen max-w-md flex-col"
       style={{ backgroundColor: C.pageBg }}
     >
       {/* ---------------- Header block (navy, rounded bottom) ---------------- */}

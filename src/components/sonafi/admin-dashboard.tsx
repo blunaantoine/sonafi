@@ -174,7 +174,7 @@ export function AdminDashboard({
 
   return (
     <div
-      className="mx-auto flex min-h-[calc(100vh-65px)] max-w-md flex-col"
+      className="mx-auto flex min-h-screen max-w-md flex-col"
       style={{ backgroundColor: PURPLE_BG, color: PURPLE_TEXT, fontFamily: "var(--font-jakarta), system-ui, sans-serif" }}
     >
       {/* ---- Purple header ---- */}
@@ -438,8 +438,8 @@ function SubView({
       style={{ fontFamily: "var(--font-jakarta), system-ui, sans-serif" }}
     >
       <div
-        className="sticky top-[65px] z-20 -mx-4 mb-3 flex items-center gap-3 px-4 py-3 sm:-mx-6 sm:px-6"
-        style={{ background: PURPLE_DEEP, color: "#fff" }}
+        className="sticky top-0 z-20 mb-3 flex items-center gap-3 px-5 py-3"
+        style={{ background: PURPLE_DEEP, color: "#fff", borderBottomLeftRadius: 24, borderBottomRightRadius: 24 }}
       >
         <button
           type="button"
