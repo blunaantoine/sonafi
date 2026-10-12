@@ -1,8 +1,9 @@
-# Déploiement VPS — Sommet Sonafi (port 3005)
+# Déploiement VPS — Sommet Sonafi (port 3006)
 
-> Sur ce VPS, les ports **3001 à 3004 sont déjà occupés** par d'autres
-> applications (3004 = site Lousha). Sonafi tourne donc sur le **port 3005**.
-> Tout autre port libre convient aussi — adaptez simplement les commandes.
+> Sur ce VPS, les ports **3001 à 3005 sont déjà occupés** par d'autres
+> applications (3004 = site Lousha, 3005 = une autre app bun). Sonafi tourne
+> donc sur le **port 3006**. Pour voir tous les ports pris d'un coup :
+> `ss -tlnp | grep -E ':300[0-9]'`
 >
 > Remplacez `IP_DU_VPS` par l'adresse IP publique de votre serveur partout
 > ci-dessous.
@@ -43,10 +44,10 @@ bun run db:push
 # ── 1.6 Build de production ──────────────────────────────────────────
 bun run build
 
-# ── 1.7 Test manuel sur le port 3005 (Ctrl+C pour arrêter) ───────────
-PORT=3005 bun run start
+# ── 1.7 Test manuel sur le port 3006 (Ctrl+C pour arrêter) ───────────
+PORT=3006 bun run start
 # Dans un autre terminal :
-curl -I http://localhost:3005        # → HTTP/1.1 200 OK
+curl -I http://localhost:3006        # → HTTP/1.1 200 OK
 ```
 
 ---
@@ -57,7 +58,7 @@ curl -I http://localhost:3005        # → HTTP/1.1 200 OK
 # Adaptez /root/.bun/bin/bun si `which bun` a donné un autre chemin.
 sudo tee /etc/systemd/system/sonafi.service > /dev/null <<'EOF'
 [Unit]
-Description=Sommet Sonafi (Next.js) - port 3005
+Description=Sommet Sonafi (Next.js) - port 3006
 After=network.target
 
 [Service]
@@ -65,7 +66,7 @@ Type=simple
 User=root
 WorkingDirectory=/opt/sonafi
 Environment=NODE_ENV=production
-Environment=PORT=3005
+Environment=PORT=3006
 Environment=HOSTNAME=0.0.0.0
 EnvironmentFile=/opt/sonafi/.env
 ExecStart=/root/.bun/bin/bun .next/standalone/server.js
@@ -81,7 +82,7 @@ sudo systemctl enable --now sonafi
 
 # Vérifier que le service tourne :
 systemctl status sonafi
-curl -I http://localhost:3005
+curl -I http://localhost:3006
 ```
 
 ---
@@ -111,13 +112,13 @@ sudo systemctl restart sonafi
 
 ---
 
-## 5. Ouvrir le port 3005 (accès direct par IP, sans domaine)
+## 5. Ouvrir le port 3006 (accès direct par IP, sans domaine)
 
 ```bash
-sudo ufw allow 3005/tcp
+sudo ufw allow 3006/tcp
 ```
 
-→ L'application est alors accessible sur `http://IP_DU_VPS:3005`.
+→ L'application est alors accessible sur `http://IP_DU_VPS:3006`.
 
 > ⚠️ **Important — caméra du scanner** : les téléphones n'autorisent l'accès
 > caméra (scan des badges QR) qu'en **HTTPS**. L'accès direct par IP convient
@@ -143,7 +144,7 @@ server {
     server_name sonafi.oquitogo.com;
 
     location / {
-        proxy_pass http://127.0.0.1:3005;
+        proxy_pass http://127.0.0.1:3006;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -180,8 +181,8 @@ sudo systemctl reload caddy
 
 Dans les deux cas → **https://sonafi.oquitogo.com** ✅
 
-> Note : ne laissez `ufw allow 3005` ouvert que si vous voulez l'accès direct
-> par IP. Derrière Nginx/Caddy, le port 3005 peut rester interne (le proxy
+> Note : ne laissez `ufw allow 3006` ouvert que si vous voulez l'accès direct
+> par IP. Derrière Nginx/Caddy, le port 3006 peut rester interne (le proxy
 > parle à l'application en local).
 
 ---
@@ -196,7 +197,7 @@ gestionnaire :
 https://sonafi.oquitogo.com/?gestionnaire
 ```
 
-ou en direct : `http://IP_DU_VPS:3005/?gestionnaire`
+ou en direct : `http://IP_DU_VPS:3006/?gestionnaire`
 
 Le **code PIN est toujours demandé** (`ADMIN_PIN` du fichier `.env`).
 
@@ -206,7 +207,7 @@ Le **code PIN est toujours demandé** (`ADMIN_PIN` du fichier `.env`).
 
 ```bash
 # 500 participantes par défaut (si la base est vierge) :
-curl -X POST http://localhost:3005/api/sonafi/participants \
+curl -X POST http://localhost:3006/api/sonafi/participants \
   -H "Content-Type: application/json" -d '{"seed":true}'
 ```
 

@@ -10,21 +10,21 @@
 #    copier ce fichier dans /etc/caddy/Caddyfile puis :
 #        sudo systemctl reload caddy
 #
-# 3. Lancer l'application sur le VPS (port 3005 — les ports 3001-3004 sont
+# 3. Lancer l'application sur le VPS (port 3006 — les ports 3001-3005 sont
 #    occupés par d'autres applications) :
 #        bun install
 #        ADMIN_PIN=<pin_solide> RESTAURATION_CODE=<code> VERIFICATION_CODE=<code> \
 #          DATABASE_URL=file:/opt/sonafi/db/custom.db bun run db:push
-#        PORT=3005 ... bun run start   # (via systemd, voir DEPLOY.md)
+#        PORT=3006 ... bun run start   # (via systemd, voir DEPLOY.md)
 #
 # Caddy obtient et renouvelle automatiquement le certificat TLS Let's Encrypt
 # pour le domaine — requis pour la caméra (getUserMedia n'existe qu'en HTTPS).
 # ---------------------------------------------------------------------------
 
 sonafi.oquitogo.com {
-        # Reverse proxy vers l'application Next.js (port 3005, même machine —
-        # les ports 3001-3004 sont déjà occupés par d'autres applications).
-        reverse_proxy localhost:3005 {
+        # Reverse proxy vers l'application Next.js (port 3006, même machine —
+        # les ports 3001-3005 sont déjà occupés par d'autres applications).
+        reverse_proxy localhost:3006 {
                 header_up Host {host}
                 header_up X-Forwarded-For {remote_host}
                 header_up X-Forwarded-Proto {scheme}
