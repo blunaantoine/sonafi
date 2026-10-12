@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BadgeCard } from "./badge-card";
+import { useSettings } from "@/components/sonafi/use-settings";
 import {
   type Participant,
   TOTAL_PARTICIPANTS,
@@ -89,10 +90,23 @@ export function BadgesTab() {
   const [participants, setParticipants] = useState<Participant[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Admin-configured participant count (dynamic — the admin can change the
+  // total at runtime). Used as the range upper bound.
+  const { totalParticipants: configuredTotal } = useSettings();
+  const total = configuredTotal ?? participants?.length ?? TOTAL_PARTICIPANTS;
+
   // Raw range values — kept as strings so the user can clear & retype freely.
   // The derived `from`/`to` numbers are clamped for slicing only.
   const [fromRaw, setFromRaw] = useState("1");
-  const [toRaw, setToRaw] = useState(String(TOTAL_PARTICIPANTS));
+  const [toRaw, setToRaw] = useState(String(total));
+
+  // Keep the default `to` in sync if the configured total changes before the
+  // user touches it.
+  useEffect(() => {
+    if (configuredTotal && configuredTotal !== TOTAL_PARTICIPANTS) {
+      setToRaw((cur) => (cur === String(TOTAL_PARTICIPANTS) ? String(configuredTotal) : cur));
+    }
+  }, [configuredTotal]);
 
   // Fetch the full participant list once on mount (limit=0 = all 500).
   useEffect(() => {
@@ -125,10 +139,10 @@ export function BadgesTab() {
   const toNum = parseInt(toRaw, 10);
   const from = Number.isNaN(fromNum)
     ? 1
-    : clamp(fromNum, 1, TOTAL_PARTICIPANTS);
+    : clamp(fromNum, 1, total);
   const to = Number.isNaN(toNum)
-    ? TOTAL_PARTICIPANTS
-    : clamp(toNum, 1, TOTAL_PARTICIPANTS);
+    ? total
+    : clamp(toNum, 1, total);
 
   // Build the visible slice client-side. Falls back to "Participant IDxxxx"
   // when the API hasn't returned a real name for that id yet.
@@ -166,7 +180,7 @@ export function BadgesTab() {
                 id="badge-from"
                 type="number"
                 min={1}
-                max={TOTAL_PARTICIPANTS}
+                max={total}
                 value={fromRaw}
                 onChange={(e) => setFromRaw(e.target.value)}
                 className="w-20"
@@ -184,7 +198,7 @@ export function BadgesTab() {
                 id="badge-to"
                 type="number"
                 min={1}
-                max={TOTAL_PARTICIPANTS}
+                max={total}
                 value={toRaw}
                 onChange={(e) => setToRaw(e.target.value)}
                 className="w-20"

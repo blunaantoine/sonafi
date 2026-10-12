@@ -230,8 +230,11 @@ export function ParticipantsList({
     () => participants.reduce((n, p) => (isPlaceholderName(p) ? n : n + 1), 0),
     [participants],
   );
+  // Use the actual participant count as the denominator so the progress bar is
+  // correct after the admin changes the configured total.
+  const totalCount = participants.length || TOTAL_PARTICIPANTS;
   const namedPercent = Math.round(
-    (namedCount / Math.max(TOTAL_PARTICIPANTS, 1)) * 100,
+    (namedCount / Math.max(totalCount, 1)) * 100,
   );
 
   const filtered = React.useMemo(() => {
@@ -283,7 +286,7 @@ export function ParticipantsList({
         <div className="mt-2 flex flex-col gap-2 rounded-lg border border-emerald-100 bg-emerald-50/40 p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-sm font-medium text-emerald-900">
-              {namedCount} / {TOTAL_PARTICIPANTS} avec nom réel
+              {namedCount} / {totalCount} avec nom réel
             </p>
             <Badge
               variant="secondary"

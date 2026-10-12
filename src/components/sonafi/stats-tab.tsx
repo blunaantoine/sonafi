@@ -50,8 +50,6 @@ import {
 
 const REFRESH_MS = 5_000;
 const RECENT_LIMIT = 20;
-/** 3 days × 2 pauses × 500 participantes = the theoretical maximum scans. */
-const POTENTIAL_MAX = TOTAL_PARTICIPANTS * 6;
 
 /** Solid bar colour for each pause type (kept here so PAUSE_META stays generic). */
 const PAUSE_BAR: Record<PauseType, string> = {
@@ -500,13 +498,16 @@ export function StatsTab() {
   }
 
   const totalScans = data?.totalScans ?? 0;
+  const participantsCount = data?.totalParticipants ?? TOTAL_PARTICIPANTS;
   const byPauseType = data?.byPauseType ?? { cafe: 0, dejeuner: 0 };
   const byDay = data?.byDay ?? { "1": 0, "2": 0, "3": 0 };
   const recent = data?.recent ?? [];
 
+  // 3 days × 2 pauses × current participant count.
+  const potentialMax = participantsCount * 6;
   const tauxPct = Math.min(
     100,
-    Math.round((totalScans / POTENTIAL_MAX) * 1000) / 10,
+    Math.round((totalScans / Math.max(potentialMax, 1)) * 1000) / 10,
   );
 
   return (
@@ -530,7 +531,7 @@ export function StatsTab() {
         />
         <KpiCard
           label="Participantes inscrites"
-          value={TOTAL_PARTICIPANTS}
+          value={participantsCount}
           hint="Badges émis pour l'événement"
           accentWrap="bg-emerald-100 text-emerald-700"
           icon={<Users className="h-4 w-4" />}
@@ -567,7 +568,7 @@ export function StatsTab() {
           <CardContent className="space-y-2">
             <Progress value={tauxPct} className="h-2.5 bg-emerald-100 [&>div]:bg-emerald-500" />
             <p className="text-xs text-muted-foreground">
-              {totalScans.toLocaleString("fr-FR")} / {POTENTIAL_MAX.toLocaleString("fr-FR")} passages potentiels
+              {totalScans.toLocaleString("fr-FR")} / {potentialMax.toLocaleString("fr-FR")} passages potentiels
             </p>
           </CardContent>
         </Card>

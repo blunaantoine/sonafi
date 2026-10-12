@@ -37,8 +37,16 @@ export const DAY_LABELS: Record<DayNumber, string> = {
   3: "Jour 3",
 };
 
-/** The canonical number of participants at the Sommet Sonafi. */
-export const TOTAL_PARTICIPANTS = 500;
+/**
+ * The default number of participants. The actual count is admin-configurable
+ * and stored in the database (Setting key "totalParticipants"); use
+ * /api/sonafi/settings to read or change it at runtime. This constant is only
+ * the fallback used before the first configuration and as the upper clamp.
+ */
+export const DEFAULT_TOTAL_PARTICIPANTS = 500;
+
+/** Backwards-compatible alias kept for the (few) places that need a constant. */
+export const TOTAL_PARTICIPANTS = DEFAULT_TOTAL_PARTICIPANTS;
 
 // ---- Automatic pause schedule ---------------------------------------------
 // The pause type is derived from the wall-clock hour so scanners don't have to
@@ -72,9 +80,15 @@ export function computeAutoPause(now: Date = new Date()): PauseType {
 
 export type Role = "scanner" | "admin";
 
-/** Format a numeric index (1..500) as a badge id, e.g. 42 -> "ID0042". */
+/** Format a numeric index (1..N) as a badge id, e.g. 42 -> "ID0042". */
 export function formatParticipantId(n: number): string {
   return `ID${String(n).padStart(4, "0")}`;
+}
+
+/** Inverse of formatParticipantId: "ID0042" -> 42. Returns NaN if not an id. */
+export function parseParticipantId(id: string): number {
+  const m = /^ID0*(\d+)$/.exec(id.trim());
+  return m ? Number(m[1]) : NaN;
 }
 
 /** Format an ISO timestamp for French display, e.g. "22/10 09:42". */

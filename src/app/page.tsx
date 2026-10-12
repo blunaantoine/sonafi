@@ -18,10 +18,11 @@ import { ParticipantsTab } from "@/components/sonafi/participants-tab";
 import { StatsTab } from "@/components/sonafi/stats-tab";
 import { PauseOverrideBar } from "@/components/sonafi/pause-override-bar";
 import { AdminGate } from "@/components/sonafi/admin-gate";
+import { ConfigCard } from "@/components/sonafi/config-card";
 import { useTotalScans } from "@/components/sonafi/use-total-scans";
 import { useRole } from "@/components/sonafi/use-role";
 import { useEffectivePause } from "@/components/sonafi/use-effective-pause";
-import { TOTAL_PARTICIPANTS } from "@/lib/sonafi";
+import { useSettings } from "@/components/sonafi/use-settings";
 
 export type AdminTab = "badges" | "participants" | "stats";
 
@@ -31,6 +32,16 @@ export default function Home() {
   const [gateOpen, setGateOpen] = useState(false);
   const { totalScans } = useTotalScans(role === "scanner");
   const { pause, error: pauseError, refetch: refetchPause } = useEffectivePause();
+  const {
+    totalParticipants,
+    actual,
+    refetch: refetchSettings,
+  } = useSettings();
+
+  // The displayed count: prefer the configured value, fall back to the actual
+  // row count, then to the constant default while loading.
+  const displayCount =
+    totalParticipants ?? actual ?? 500;
 
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-b from-emerald-50/40 via-background to-background">
@@ -47,7 +58,7 @@ export default function Home() {
               </h1>
               <p className="text-xs text-muted-foreground">
                 {role === "admin" ? "Espace administrateur" : "Scanner"} ·{" "}
-                {TOTAL_PARTICIPANTS} participantes
+                {displayCount} participantes
               </p>
             </div>
           </div>
@@ -101,6 +112,9 @@ export default function Home() {
             setTab={setTab}
             pause={pause}
             refetchPause={refetchPause}
+            totalParticipants={totalParticipants}
+            actual={actual}
+            refetchSettings={refetchSettings}
           />
         )}
       </main>
@@ -142,7 +156,7 @@ function ScannerView({ pauseError }: { pauseError: string | null }) {
 }
 
 // ---------------------------------------------------------------------------
-// Admin view — override bar + management tabs (no scan)
+// Admin view — config + override bar + management tabs (no scan)
 // ---------------------------------------------------------------------------
 
 interface AdminViewProps {
@@ -150,11 +164,29 @@ interface AdminViewProps {
   setTab: (t: AdminTab) => void;
   pause: ReturnType<typeof useEffectivePause>["pause"];
   refetchPause: () => void;
+  totalParticipants: number | null;
+  actual: number | null;
+  refetchSettings: () => void;
 }
 
-function AdminView({ tab, setTab, pause, refetchPause }: AdminViewProps) {
+function AdminView({
+  tab,
+  setTab,
+  pause,
+  refetchPause,
+  totalParticipants,
+  actual,
+  refetchSettings,
+}: AdminViewProps) {
   return (
     <div className="space-y-4">
+      {/* Participant count — admin-configurable */}
+      <ConfigCard
+        totalParticipants={totalParticipants}
+        actual={actual}
+        onChanged={refetchSettings}
+      />
+
       {/* Pause override — always visible to the admin (the "retard" escape hatch) */}
       <PauseOverrideBar pause={pause} onChanged={refetchPause} />
 

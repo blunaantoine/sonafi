@@ -351,7 +351,7 @@ export function ParticipantsImportCard({
             Glissez un fichier ici ou cliquez pour parcourir
           </p>
           <p className="text-xs text-muted-foreground">
-            Formats acceptés : .csv, .json · jusqu'à 500 lignes
+            Formats acceptés : .csv, .json · jusqu'à 10 000 lignes
           </p>
         </div>
 
