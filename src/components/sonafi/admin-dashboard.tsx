@@ -25,6 +25,7 @@ import {
 } from "@/lib/sonafi";
 import { PauseOverrideBar } from "@/components/sonafi/pause-override-bar";
 import { ConfigCard } from "@/components/sonafi/config-card";
+import { AccessCodesCard } from "@/components/sonafi/access-codes-card";
 import { BadgesTab } from "@/components/sonafi/badges-tab";
 import { ParticipantsTab } from "@/components/sonafi/participants-tab";
 import { StatsTab } from "@/components/sonafi/stats-tab";
@@ -142,6 +143,7 @@ export function AdminDashboard({
             actual={actual}
             onChanged={refetchSettings}
           />
+          <AccessCodesCard />
           <PauseOverrideBar pause={pause} onChanged={refetchPause} />
         </div>
       </SubView>

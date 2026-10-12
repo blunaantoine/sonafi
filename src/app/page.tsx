@@ -2,28 +2,41 @@
 
 import { useState } from "react";
 import { ScanTab } from "@/components/sonafi/scan-tab";
-import { AdminGate } from "@/components/sonafi/admin-gate";
+import { RoleGate } from "@/components/sonafi/role-gate";
 import { AdminDashboard } from "@/components/sonafi/admin-dashboard";
 import { LandingPage } from "@/components/sonafi/landing-page";
 import { VerificationView } from "@/components/sonafi/verification-view";
 import { useEffectivePause } from "@/components/sonafi/use-effective-pause";
 import { useSettings } from "@/components/sonafi/use-settings";
 import { useRole } from "@/components/sonafi/use-role";
+import type { AccessCodeRole } from "@/lib/access-codes";
 
 export default function Home() {
   const { role, becomeScanner, becomeVerification, becomeAdmin, goHome } = useRole();
-  const [gateOpen, setGateOpen] = useState(false);
+  /** Which role the open gate is asking the code for. */
+  const [gateRole, setGateRole] = useState<AccessCodeRole | null>(null);
   const { pause, error: pauseError, refetch: refetchPause } = useEffectivePause();
   const { totalParticipants, actual, refetch: refetchSettings } = useSettings();
+
+  function requestRole(r: AccessCodeRole) {
+    setGateRole(r);
+  }
+
+  function onGateSuccess(_code: string) {
+    // The code was verified server-side for gateRole — switch to that role.
+    if (gateRole === "admin") becomeAdmin();
+    else if (gateRole === "restauration") becomeScanner();
+    else if (gateRole === "verification") becomeVerification();
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <main className="flex-1">
         {role === "home" ? (
           <LandingPage
-            onSelectScanner={becomeScanner}
-            onSelectVerification={becomeVerification}
-            onSelectAdmin={() => setGateOpen(true)}
+            onSelectScanner={() => requestRole("restauration")}
+            onSelectVerification={() => requestRole("verification")}
+            onSelectAdmin={() => requestRole("admin")}
           />
         ) : role === "scanner" ? (
           <ScannerView pauseError={pauseError} />
@@ -41,8 +54,17 @@ export default function Home() {
         )}
       </main>
 
-      {/* Admin PIN gate */}
-      <AdminGate open={gateOpen} onOpenChange={setGateOpen} onSuccess={becomeAdmin} />
+      {/* Role access-code gate (one dialog, role passed dynamically) */}
+      {gateRole && (
+        <RoleGate
+          role={gateRole}
+          open={gateRole !== null}
+          onOpenChange={(o) => {
+            if (!o) setGateRole(null);
+          }}
+          onSuccess={onGateSuccess}
+        />
+      )}
     </div>
   );
 }

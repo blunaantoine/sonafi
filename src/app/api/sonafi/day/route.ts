@@ -1,3 +1,4 @@
+import { verifyCode } from "@/lib/access-codes";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
@@ -7,7 +8,7 @@ import type { DayNumber } from "@/lib/sonafi";
 export const DAY_KEY = "currentDay";
 
 /** Admin PIN (see /api/sonafi/auth/verify). */
-const ADMIN_PIN = process.env.ADMIN_PIN ?? "sonafi2025";
+
 
 interface DaySetting {
   day: DayNumber;
@@ -73,7 +74,7 @@ export async function PUT(req: NextRequest) {
   }
 
   const { pin, day } = parsed.data;
-  if (pin !== ADMIN_PIN) {
+  if (!(await verifyCode("admin", pin))) {
     return NextResponse.json(
       { success: false, message: "Code administrateur incorrect." },
       { status: 401 },

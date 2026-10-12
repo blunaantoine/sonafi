@@ -1,3 +1,4 @@
+import { verifyCode } from "@/lib/access-codes";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
@@ -11,7 +12,7 @@ import {
 export const TOTAL_KEY = "totalParticipants";
 
 /** Admin PIN (see /api/sonafi/auth/verify). */
-const ADMIN_PIN = process.env.ADMIN_PIN ?? "sonafi2025";
+
 
 /** Reasonable bounds so a typo can't create millions of rows. */
 const MIN_PARTICIPANTS = 1;
@@ -88,7 +89,7 @@ export async function PUT(req: NextRequest) {
   }
 
   const { pin, totalParticipants } = parsed.data;
-  if (pin !== ADMIN_PIN) {
+  if (!(await verifyCode("admin", pin))) {
     return NextResponse.json(
       { success: false, message: "Code administrateur incorrect." },
       { status: 401 },

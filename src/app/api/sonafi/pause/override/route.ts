@@ -1,3 +1,4 @@
+import { verifyCode } from "@/lib/access-codes";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
@@ -5,7 +6,7 @@ import { computeAutoPause } from "@/lib/sonafi";
 import { OVERRIDE_KEY } from "@/app/api/sonafi/pause/current/route";
 
 /** The admin PIN (see /api/sonafi/auth/verify). */
-const ADMIN_PIN = process.env.ADMIN_PIN ?? "sonafi2025";
+
 
 const OverrideSchema = z.object({
   pin: z.string().min(1),
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
 
   const { pin, pauseType } = parsed.data;
 
-  if (pin !== ADMIN_PIN) {
+  if (!(await verifyCode("admin", pin))) {
     return NextResponse.json(
       { success: false, message: "Code administrateur incorrect." },
       { status: 401 },
