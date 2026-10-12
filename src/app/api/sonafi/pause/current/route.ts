@@ -6,7 +6,7 @@ import { computeAutoPause, type EffectivePause } from "@/lib/sonafi";
 export const OVERRIDE_KEY = "pauseOverride";
 
 interface StoredOverride {
-  pauseType: "cafe" | "dejeuner";
+  pauseType: "cafe" | "dejeuner" | "jeux";
   setAt: string;
 }
 
@@ -27,7 +27,11 @@ export async function GET() {
   if (row) {
     try {
       const parsed = JSON.parse(row.value) as StoredOverride;
-      if (parsed?.pauseType === "cafe" || parsed?.pauseType === "dejeuner") {
+      if (
+        parsed?.pauseType === "cafe" ||
+        parsed?.pauseType === "dejeuner" ||
+        parsed?.pauseType === "jeux"
+      ) {
         const body: EffectivePause = {
           pauseType: parsed.pauseType,
           source: "override",

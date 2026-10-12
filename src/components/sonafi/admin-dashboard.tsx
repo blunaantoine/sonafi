@@ -29,6 +29,7 @@ import { BadgesTab } from "@/components/sonafi/badges-tab";
 import { ParticipantsTab } from "@/components/sonafi/participants-tab";
 import { StatsTab } from "@/components/sonafi/stats-tab";
 import { C } from "@/lib/design-tokens";
+import { useCurrentDay } from "@/components/sonafi/use-current-day";
 
 // ---- Design tokens (event colours: navy primary) --------------------------
 const PURPLE_BG = C.pageBg;
@@ -64,10 +65,42 @@ export function AdminDashboard({
   onGoHome,
 }: AdminDashboardProps) {
   const [view, setView] = useState<View>("dashboard");
-  const [day, setDay] = useState<DayNumber>(1);
+  // The current day is admin-programmed and shared across all devices.
+  const { day, refetch: refetchDay } = useCurrentDay();
+  const [dayLoading, setDayLoading] = useState(false);
   const [detail, setDetail] = useState<DayDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+
+  // Set the current day (admin-only, PIN-checked server-side).
+  const setSharedDay = useCallback(
+    async (d: DayNumber) => {
+      const pin = sessionStorage.getItem("sonafi.adminPin") ?? "";
+      if (!pin) {
+        toast({ variant: "destructive", title: "Session expirée", description: "Redevenez admin." });
+        return;
+      }
+      setDayLoading(true);
+      try {
+        const res = await fetch("/api/sonafi/day", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pin, day: d }),
+        });
+        const data = (await res.json().catch(() => ({}))) as { success?: boolean; message?: string };
+        if (res.ok && data.success) {
+          refetchDay();
+        } else {
+          toast({ variant: "destructive", title: "Échec", description: data.message ?? "Réessayez." });
+        }
+      } catch {
+        toast({ variant: "destructive", title: "Réseau indisponible", description: "Réessayez." });
+      } finally {
+        setDayLoading(false);
+      }
+    },
+    [refetchDay, toast],
+  );
 
   const fetchDay = useCallback(async () => {
     try {
@@ -174,28 +207,34 @@ export function AdminDashboard({
 
       {/* ---- Body ---- */}
       <div className="flex flex-col gap-4 px-5 pt-5">
-        {/* Day selector — segmented control */}
-        <div
-          className="grid grid-cols-3 gap-1 p-1"
-          style={{ background: PURPLE_SEGMENT_BG, borderRadius: 16 }}
-        >
-          {DAYS.map((d) => {
-            const active = d === day;
-            return (
-              <button
-                key={d}
-                type="button"
-                aria-pressed={active}
-                onClick={() => setDay(d)}
-                className={cn(
-                  "h-11 rounded-xl text-[15px] font-semibold transition-colors",
-                  active ? "bg-white text-[#24173F] font-bold shadow-sm" : "bg-transparent text-[#5E5476]",
-                )}
-              >
-                Jour {d}
-              </button>
-            );
-          })}
+        {/* Day selector — admin programs the current day (shared with all devices) */}
+        <div>
+          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide" style={{ color: PURPLE_MUTED }}>
+            Jour courant · programmé par l'admin
+          </p>
+          <div
+            className="grid grid-cols-3 gap-1 p-1"
+            style={{ background: PURPLE_SEGMENT_BG, borderRadius: 16 }}
+          >
+            {DAYS.map((d) => {
+              const active = d === day;
+              return (
+                <button
+                  key={d}
+                  type="button"
+                  aria-pressed={active}
+                  disabled={dayLoading}
+                  onClick={() => void setSharedDay(d)}
+                  className={cn(
+                    "h-11 rounded-xl text-[15px] font-semibold transition-colors disabled:opacity-60",
+                    active ? "bg-white text-[#24173F] font-bold shadow-sm" : "bg-transparent text-[#5E5476]",
+                  )}
+                >
+                  {DAY_LABELS[d]}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Stats card with progress bars */}

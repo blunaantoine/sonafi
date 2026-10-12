@@ -54,6 +54,7 @@ import {
   type StatsResponse,
 } from "@/lib/sonafi";
 import { useEffectivePause } from "@/components/sonafi/use-effective-pause";
+import { useCurrentDay } from "@/components/sonafi/use-current-day";
 import { useRole } from "@/components/sonafi/use-role";
 import { C, R } from "@/lib/design-tokens";
 import {
@@ -135,16 +136,15 @@ function friendlyCameraError(err: unknown): string {
 export function ScanTab() {
   const { goHome } = useRole();
 
-  // ----- Day selector (persisted) ------------------------------------------
-  const [day, setDay] = useState<DayNumber>(readDay);
-  useEffect(() => writeLS(LS_DAY, day), [day]);
+  // ----- Current day: admin-programmed (shared across all devices) ----------
+  const { day } = useCurrentDay();
 
   // ----- Effective pause: automatic by clock, or admin-forced (shared) ----
   const { pause: effective } = useEffectivePause();
   const pauseType: PauseType | null = effective?.pauseType ?? null;
 
   // Refs mirroring day/pause so the (once-created) scan callback always sees
-  // the latest value even if the user switches mid-session.
+  // the latest value even if it changes mid-session.
   const dayRef = useRef(day);
   const pauseTypeRef = useRef<PauseType | null>(pauseType);
   useEffect(() => {
@@ -431,36 +431,6 @@ export function ScanTab() {
 
       {/* ===== Body (20px padding) ===== */}
       <div className="flex flex-col gap-4 p-5">
-        {/* Compact day selector — 3 pills */}
-        <section aria-label="Choix du jour">
-          <div className="grid grid-cols-3 gap-2">
-            {DAYS.map((d) => {
-              const active = d === day;
-              return (
-                <button
-                  key={d}
-                  type="button"
-                  onClick={() => setDay(d)}
-                  aria-pressed={active}
-                  className={cn(
-                    "flex h-10 items-center justify-center rounded-full text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2",
-                    active
-                      ? "text-white shadow-sm"
-                      : "bg-white text-gray-700 ring-1 ring-inset ring-gray-200 hover:bg-gray-50",
-                  )}
-                  style={
-                    active
-                      ? { backgroundColor: C.restauration }
-                      : undefined
-                  }
-                >
-                  {DAY_LABELS[d]}
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
         {/* Pause en cours — label + indicator card */}
         <section aria-label="Pause en cours">
           <h2

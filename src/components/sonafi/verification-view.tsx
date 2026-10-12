@@ -32,6 +32,7 @@ import {
 import { C, R } from "@/lib/design-tokens";
 import { useRole } from "@/components/sonafi/use-role";
 import { useSettings } from "@/components/sonafi/use-settings";
+import { useCurrentDay } from "@/components/sonafi/use-current-day";
 import { cn } from "@/lib/utils";
 import {
   VerificationResultOverlay,
@@ -109,12 +110,11 @@ export function VerificationView() {
   const { goHome } = useRole();
   const { totalParticipants } = useSettings();
 
-  // ----- Day selector (persisted) ------------------------------------------
-  const [day, setDay] = useState<DayNumber>(readDay);
-  useEffect(() => writeLS(LS_DAY, day), [day]);
+  // ----- Current day: admin-programmed (shared across all devices) ----------
+  const { day } = useCurrentDay();
 
-  // Refs mirroring day so the (once-created) scan callback always sees the
-  // latest value even if the user switches mid-session.
+  // Ref mirroring day so the (once-created) scan callback always sees the
+  // latest value even if the admin changes it mid-session.
   const dayRef = useRef(day);
   useEffect(() => {
     dayRef.current = day;
@@ -478,33 +478,6 @@ export function VerificationView() {
           Body
          --------------------------------------------------------------- */}
       <div className="space-y-4 px-4 py-4 sm:px-5">
-        {/* Day selector — compact 3-pill row */}
-        <div className="flex gap-2" role="group" aria-label="Choix du jour">
-          {DAYS.map((d) => {
-            const active = d === day;
-            return (
-              <button
-                key={d}
-                type="button"
-                onClick={() => setDay(d)}
-                aria-pressed={active}
-                className={cn(
-                  "flex h-9 flex-1 items-center justify-center rounded-full text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:h-10 sm:text-sm",
-                  active
-                    ? "text-white shadow-sm"
-                    : "border bg-white text-gray-700 hover:bg-gray-50",
-                )}
-                style={{
-                  backgroundColor: active ? C.verification : undefined,
-                  borderColor: active ? undefined : C.divider,
-                }}
-              >
-                {DAY_LABELS[d]}
-              </button>
-            );
-          })}
-        </div>
-
         {/* Scanner viewfinder card — dark, full width, ~40% viewport height */}
         <div
           className="relative w-full overflow-hidden"
