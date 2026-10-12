@@ -35,7 +35,7 @@ const ROLE_META: Record<
   },
   restauration: {
     title: "Équipe restauration",
-    desc: "Saisissez le code restauration pour scanner les pauses (café, déjeuner, jeux).",
+    desc: "Saisissez le code restauration pour scanner les pauses (café, déjeuner).",
     icon: Utensils,
     accent: "#E8590C",
     placeholder: "Code restauration",

@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 const PauseSchema = z.object({
   participantId: z.string().min(1),
   day: z.number().int().min(1).max(10),
-  pauseType: z.enum(["cafe", "dejeuner", "jeux"]),
+  pauseType: z.enum(["cafe", "dejeuner"]),
 });
 
 /** POST /api/sonafi/pause/check — is this pause already taken today? */

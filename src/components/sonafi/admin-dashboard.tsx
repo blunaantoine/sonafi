@@ -43,7 +43,6 @@ const PURPLE_ICON_TILE = C.gestionnaireTint;
 const PURPLE_DIVIDER = C.divider;
 const TEAL = C.entriesBar;
 const ROSE = C.pauseCafe;
-const JEUX_BAR = C.pauseJeux;
 
 type View = "dashboard" | "participants" | "badges" | "historique" | "config";
 
@@ -315,13 +314,6 @@ export function AdminDashboard({
             color={ROSE}
             track={PURPLE_TRACK}
           />
-          <ProgressBar
-            label="Pause des jeux"
-            value={(detail as { jeux?: number } | null)?.jeux ?? 0}
-            total={total}
-            color={JEUX_BAR}
-            track={PURPLE_TRACK}
-          />
         </div>
 
         {/* Pause override — quick access when a pause is forced */}
@@ -380,7 +372,7 @@ export function AdminDashboard({
             <span className="text-[13px]" style={{ color: PURPLE_MUTED }}>
               Pause active :{" "}
               <span className="font-semibold" style={{ color: PURPLE_TEXT }}>
-                {pause?.pauseType === "cafe" ? "café" : pause?.pauseType === "dejeuner" ? "déjeuner" : pause?.pauseType === "jeux" ? "jeux" : "—"}
+                {pause?.pauseType === "cafe" ? "café" : pause?.pauseType === "dejeuner" ? "déjeuner" : "—"}
               </span>{" "}
               (automatique)
             </span>

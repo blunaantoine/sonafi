@@ -11,7 +11,7 @@ import { OVERRIDE_KEY } from "@/app/api/sonafi/pause/current/route";
 const OverrideSchema = z.object({
   pin: z.string().min(1),
   /** Force this pause type. Pass null to clear the override and return to auto. */
-  pauseType: z.union([z.literal("cafe"), z.literal("dejeuner"), z.literal("jeux"), z.null()]),
+  pauseType: z.union([z.literal("cafe"), z.literal("dejeuner"), z.null()]),
 });
 
 /**
@@ -75,8 +75,7 @@ export async function POST(req: NextRequest) {
     create: { key: OVERRIDE_KEY, value },
   });
 
-  const label =
-    pauseType === "cafe" ? "café" : pauseType === "dejeuner" ? "déjeuner" : "jeux";
+  const label = pauseType === "cafe" ? "café" : "déjeuner";
   return NextResponse.json({
     success: true,
     message: `Pause forcée : ${label}.`,

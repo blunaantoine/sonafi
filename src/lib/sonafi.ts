@@ -3,11 +3,11 @@
  * Every tab imports from here so the day/pause vocabulary stays consistent.
  */
 
-export type PauseType = "cafe" | "dejeuner" | "jeux";
+export type PauseType = "cafe" | "dejeuner";
 /** A summit day, 1..N (the admin configures N, the number of days). */
 export type DayNumber = number;
 
-export const PAUSE_TYPES: PauseType[] = ["cafe", "dejeuner", "jeux"];
+export const PAUSE_TYPES: PauseType[] = ["cafe", "dejeuner"];
 
 /** Default number of event days (the admin can change it). */
 export const DEFAULT_NUMBER_OF_DAYS = 3;
@@ -42,13 +42,6 @@ export const PAUSE_META: Record<
     ring: "ring-orange-500",
     soft: "bg-orange-100 text-orange-900 border-orange-200",
   },
-  jeux: {
-    label: "Pause des jeux",
-    emoji: "🎯",
-    accent: "text-fuchsia-700",
-    ring: "ring-fuchsia-500",
-    soft: "bg-fuchsia-100 text-fuchsia-900 border-fuchsia-200",
-  },
 };
 
 export const DAY_LABELS: Record<DayNumber, string> = {
@@ -77,26 +70,21 @@ export const TOTAL_PARTICIPANTS = DEFAULT_TOTAL_PARTICIPANTS;
 export const CAFE_START_HOUR = 8;
 /** Hour (24h, inclusive) at which the café pause ends and déjeuner begins. */
 export const DEJEUNER_START_HOUR = 11;
-/** Hour at which the jeux pause begins (afternoon). */
-export const JEUX_START_HOUR = 15;
 
 /** Human-readable description of the auto pause windows. */
 export const PAUSE_WINDOWS: Record<PauseType, string> = {
   cafe: `De ${CAFE_START_HOUR}h à ${DEJEUNER_START_HOUR}h`,
-  dejeuner: `De ${DEJEUNER_START_HOUR}h à ${JEUX_START_HOUR}h`,
-  jeux: `À partir de ${JEUX_START_HOUR}h`,
+  dejeuner: `À partir de ${DEJEUNER_START_HOUR}h`,
 };
 
 /**
  * Derive the pause type from the current wall-clock hour.
  *  - 8h–11h → café
- *  - 11h–15h → déjeuner
- *  - 15h and after → jeux
+ *  - 11h and after → déjeuner
  *  - before 8h → café (default, the day hasn't really started)
  */
 export function computeAutoPause(now: Date = new Date()): PauseType {
   const h = now.getHours();
-  if (h >= JEUX_START_HOUR) return "jeux";
   if (h >= DEJEUNER_START_HOUR) return "dejeuner";
   return "cafe";
 }
@@ -207,7 +195,6 @@ export interface DayDetail {
   entries: number;
   cafe: number;
   dejeuner: number;
-  jeux: number;
 }
 
 export interface StatsResponse {

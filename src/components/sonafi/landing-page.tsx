@@ -40,7 +40,7 @@ const ROLE_CARDS: RoleCardDef[] = [
   {
     id: "scanner",
     title: "Équipe restauration",
-    subtitle: "Scanner les pauses café, déjeuner et jeux",
+    subtitle: "Scanner les pauses café et déjeuner",
     Icon: Utensils,
     iconBg: C.restauration,
     onSelect: "onSelectScanner",

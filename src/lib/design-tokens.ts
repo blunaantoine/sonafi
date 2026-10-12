@@ -47,7 +47,6 @@ export const C = {
   // ---- Pause-type accent colours (progress bars on the dashboard) --------
   pauseCafe: "#FF9802",
   pauseDejeuner: "#FF9802",
-  pauseJeux: "#0F4180",
   entriesBar: "#24AD8D",
 
   // ---- Semantic state colours (full-screen overlays) --------------------

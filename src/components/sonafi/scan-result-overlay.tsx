@@ -62,7 +62,6 @@ interface ScanResultOverlayProps {
 const SHORT_PAUSE_NAME: Record<PauseType, string> = {
   cafe: "café",
   dejeuner: "déjeuner",
-  jeux: "jeux",
 };
 
 interface OverlayTheme {

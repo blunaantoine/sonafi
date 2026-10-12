@@ -7,7 +7,7 @@ const PauseSchema = z.object({
   /** The scanned token (random, non-sequential) OR a legacy ID like "ID0042". */
   participantId: z.string().min(1),
   day: z.number().int().min(1).max(10),
-  pauseType: z.enum(["cafe", "dejeuner", "jeux"]),
+  pauseType: z.enum(["cafe", "dejeuner"]),
 });
 
 /** POST /api/sonafi/pause/record — record a pause, refusing duplicates. */
