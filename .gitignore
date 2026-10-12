@@ -69,3 +69,5 @@ server.log
 /agent-ctx/tool-results/
 vlm-result.json
 *.json.bak
+audit*.png
+verify*.png
