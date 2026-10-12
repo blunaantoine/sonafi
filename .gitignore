@@ -66,4 +66,4 @@ server.log
 
 # Agent worklog (local session log)
 /worklog.md
-/agent-ctx/
+/agent-ctx/tool-results/
