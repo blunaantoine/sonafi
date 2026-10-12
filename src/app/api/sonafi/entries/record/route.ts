@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 
 const EntrySchema = z.object({
   participantId: z.string().min(1),
-  day: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  day: z.number().int().min(1).max(10),
 });
 
 /**

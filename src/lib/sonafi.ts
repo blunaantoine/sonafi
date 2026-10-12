@@ -4,11 +4,24 @@
  */
 
 export type PauseType = "cafe" | "dejeuner" | "jeux";
-export type DayNumber = 1 | 2 | 3;
+/** A summit day, 1..N (the admin configures N, the number of days). */
+export type DayNumber = number;
 
 export const PAUSE_TYPES: PauseType[] = ["cafe", "dejeuner", "jeux"];
 
-export const DAYS: DayNumber[] = [1, 2, 3];
+/** Default number of event days (the admin can change it). */
+export const DEFAULT_NUMBER_OF_DAYS = 3;
+/** Upper bound so a typo can't create a huge day list. */
+export const MAX_NUMBER_OF_DAYS = 10;
+
+/** Build the day list [1..n]. */
+export function makeDays(n: number): DayNumber[] {
+  const count = Math.min(Math.max(1, Math.trunc(n)), MAX_NUMBER_OF_DAYS);
+  return Array.from({ length: count }, (_, i) => i + 1);
+}
+
+/** The default 3-day list (kept for backwards compatibility). */
+export const DAYS: DayNumber[] = makeDays(DEFAULT_NUMBER_OF_DAYS);
 
 /** Human French labels + Tailwind colour tokens for each pause type. */
 export const PAUSE_META: Record<

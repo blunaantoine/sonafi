@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 
 const PauseSchema = z.object({
   participantId: z.string().min(1),
-  day: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  day: z.number().int().min(1).max(10),
   pauseType: z.enum(["cafe", "dejeuner", "jeux"]),
 });
 

@@ -18,8 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   type DayDetail,
   type DayNumber,
-  DAYS,
-  DAY_LABELS,
+  makeDays,
   formatTimestamp,
   type EffectivePause,
 } from "@/lib/sonafi";
@@ -67,15 +66,46 @@ export function AdminDashboard({
 }: AdminDashboardProps) {
   const [view, setView] = useState<View>("dashboard");
   // The current day is admin-programmed and shared across all devices.
-  const { day, dates, forced, refetch: refetchDay } = useCurrentDay();
+  const { day, dates, forced, numberOfDays, refetch: refetchDay } = useCurrentDay();
   const [dayLoading, setDayLoading] = useState(false);
   const [detail, setDetail] = useState<DayDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  // Set the dates for jour 1/2/3 (admin-only, PIN-checked server-side).
+  // Set the number of event days (admin-only, PIN-checked server-side).
+  const setNumberOfDays = useCallback(
+    async (n: number) => {
+      const pin = sessionStorage.getItem("sonafi.adminPin") ?? "";
+      if (!pin) {
+        toast({ variant: "destructive", title: "Session expirée", description: "Redevenez admin." });
+        return;
+      }
+      setDayLoading(true);
+      try {
+        const res = await fetch("/api/sonafi/day", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pin, numberOfDays: n }),
+        });
+        const data = (await res.json().catch(() => ({}))) as { success?: boolean; message?: string };
+        if (res.ok && data.success) {
+          refetchDay();
+          toast({ title: `Nombre de jours : ${n}` });
+        } else {
+          toast({ variant: "destructive", title: "Échec", description: data.message ?? "Réessayez." });
+        }
+      } catch {
+        toast({ variant: "destructive", title: "Réseau indisponible", description: "Réessayez." });
+      } finally {
+        setDayLoading(false);
+      }
+    },
+    [refetchDay, toast],
+  );
+
+  // Set the dates for jour 1..N (admin-only, PIN-checked server-side).
   const saveDates = useCallback(
-    async (newDates: { 1?: string; 2?: string; 3?: string }) => {
+    async (newDates: Record<string, string>) => {
       const pin = sessionStorage.getItem("sonafi.adminPin") ?? "";
       if (!pin) {
         toast({ variant: "destructive", title: "Session expirée", description: "Redevenez admin." });
@@ -247,10 +277,12 @@ export function AdminDashboard({
           day={day}
           dates={dates}
           forced={forced}
+          numberOfDays={numberOfDays}
           loading={dayLoading}
           onForce={(d) => void setSharedDay(d)}
           onClearForce={() => void setSharedDay(null)}
           onSaveDates={(d) => void saveDates(d)}
+          onSetNumberOfDays={(n) => void setNumberOfDays(n)}
         />
 
         {/* Stats card with progress bars */}
@@ -476,37 +508,38 @@ function SubView({
 
 export default AdminDashboard;
 
-// ---- DayConfigCard — dates + force/clear the current day -------------------
+// ---- DayConfigCard — number of days + dates + force/clear ------------------
 
 interface DayConfigCardProps {
   day: DayNumber;
   dates: Record<string, string>;
   forced: boolean;
+  numberOfDays: number;
   loading: boolean;
   onForce: (d: DayNumber) => void;
   onClearForce: () => void;
-  onSaveDates: (dates: { 1?: string; 2?: string; 3?: string }) => void;
+  onSaveDates: (dates: Record<string, string>) => void;
+  onSetNumberOfDays: (n: number) => void;
 }
 
 function DayConfigCard({
   day,
   dates,
   forced,
+  numberOfDays,
   loading,
   onForce,
   onClearForce,
   onSaveDates,
+  onSetNumberOfDays,
 }: DayConfigCardProps) {
   const [editing, setEditing] = useState(false);
-  const [d1, setD1] = useState(dates["1"] ?? "");
-  const [d2, setD2] = useState(dates["2"] ?? "");
-  const [d3, setD3] = useState(dates["3"] ?? "");
+  const [editDates, setEditDates] = useState<Record<string, string>>({});
+  const dayList = makeDays(numberOfDays);
 
-  // Sync local inputs when the server-side dates change.
+  // Sync local date inputs when the server-side dates change.
   useEffect(() => {
-    setD1(dates["1"] ?? "");
-    setD2(dates["2"] ?? "");
-    setD3(dates["3"] ?? "");
+    setEditDates({ ...dates });
   }, [dates]);
 
   return (
@@ -516,7 +549,7 @@ function DayConfigCard({
     >
       <div className="flex items-center justify-between">
         <p className="text-[15px] font-bold">
-          Jour courant : {DAY_LABELS[day]}
+          Jour courant : Jour {day}
         </p>
         <span
           className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
@@ -529,11 +562,41 @@ function DayConfigCard({
         </span>
       </div>
 
+      {/* Number of days selector */}
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-[13px]" style={{ color: PURPLE_MUTED }}>
+          Nombre de jours
+        </span>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            disabled={loading || numberOfDays <= 1}
+            onClick={() => onSetNumberOfDays(numberOfDays - 1)}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-base font-bold disabled:opacity-40"
+            style={{ background: PURPLE_SEGMENT_BG, color: PURPLE_DEEP }}
+            aria-label="Diminuer le nombre de jours"
+          >
+            −
+          </button>
+          <span className="w-8 text-center text-[15px] font-bold">{numberOfDays}</span>
+          <button
+            type="button"
+            disabled={loading || numberOfDays >= 10}
+            onClick={() => onSetNumberOfDays(numberOfDays + 1)}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-base font-bold disabled:opacity-40"
+            style={{ background: PURPLE_SEGMENT_BG, color: PURPLE_DEEP }}
+            aria-label="Augmenter le nombre de jours"
+          >
+            +
+          </button>
+        </div>
+      </div>
+
       {/* Configured dates */}
       <div className="flex flex-col gap-1.5">
-        {DAYS.map((d) => (
+        {dayList.map((d) => (
           <div key={d} className="flex items-center justify-between text-[13px]">
-            <span style={{ color: PURPLE_MUTED }}>{DAY_LABELS[d]}</span>
+            <span style={{ color: PURPLE_MUTED }}>Jour {d}</span>
             <span className="font-medium">
               {dates[String(d)]
                 ? new Date(dates[String(d)] + "T00:00:00").toLocaleDateString("fr-FR", {
@@ -548,10 +611,10 @@ function DayConfigCard({
 
       {/* Quick force buttons (the "retard" override) */}
       <div
-        className="grid grid-cols-4 gap-1 p-1"
-        style={{ background: PURPLE_SEGMENT_BG, borderRadius: 12 }}
+        className="grid gap-1 p-1"
+        style={{ background: PURPLE_SEGMENT_BG, borderRadius: 12, gridTemplateColumns: `repeat(${Math.min(numberOfDays + 1, 5)}, minmax(0, 1fr))` }}
       >
-        {DAYS.map((d) => (
+        {dayList.map((d) => (
           <button
             key={d}
             type="button"
@@ -559,15 +622,9 @@ function DayConfigCard({
             onClick={() => onForce(d)}
             className={cn(
               "h-9 rounded-lg text-[13px] font-semibold transition-colors disabled:opacity-50",
-              forced && day === d
-                ? "bg-white font-bold shadow-sm"
-                : "bg-transparent",
+              forced && day === d ? "bg-white font-bold shadow-sm" : "bg-transparent",
             )}
-            style={
-              forced && day === d
-                ? { color: "#24173F" }
-                : { color: "#5E5476" }
-            }
+            style={forced && day === d ? { color: "#24173F" } : { color: "#5E5476" }}
           >
             Forcer J{d}
           </button>
@@ -577,8 +634,7 @@ function DayConfigCard({
           disabled={loading || !forced}
           onClick={onClearForce}
           className={cn(
-            "h-9 rounded-lg text-[13px] font-semibold transition-colors disabled:opacity-40",
-            "bg-transparent",
+            "h-9 rounded-lg text-[13px] font-semibold transition-colors disabled:opacity-40 bg-transparent",
           )}
           style={{ color: "#5E5476" }}
         >
@@ -599,17 +655,15 @@ function DayConfigCard({
       ) : (
         <div className="flex flex-col gap-2">
           <div className="flex flex-col gap-2">
-            {[
-              { label: "Jour 1", val: d1, set: setD1 },
-              { label: "Jour 2", val: d2, set: setD2 },
-              { label: "Jour 3", val: d3, set: setD3 },
-            ].map((row) => (
-              <label key={row.label} className="flex items-center gap-3 text-[13px]">
-                <span className="w-16" style={{ color: PURPLE_MUTED }}>{row.label}</span>
+            {dayList.map((d) => (
+              <label key={d} className="flex items-center gap-3 text-[13px]">
+                <span className="w-16" style={{ color: PURPLE_MUTED }}>Jour {d}</span>
                 <input
                   type="date"
-                  value={row.val}
-                  onChange={(e) => row.set(e.target.value)}
+                  value={editDates[String(d)] ?? ""}
+                  onChange={(e) =>
+                    setEditDates((prev) => ({ ...prev, [String(d)]: e.target.value }))
+                  }
                   className="flex-1 rounded-lg border px-2 py-1.5 text-[13px]"
                   style={{ borderColor: PURPLE_CARD_BORDER, color: PURPLE_TEXT }}
                 />
@@ -621,7 +675,12 @@ function DayConfigCard({
               type="button"
               disabled={loading}
               onClick={() => {
-                onSaveDates({ 1: d1 || undefined, 2: d2 || undefined, 3: d3 || undefined });
+                // Build the dates payload, filtering empties.
+                const payload: Record<string, string> = {};
+                for (const [k, v] of Object.entries(editDates)) {
+                  if (v) payload[k] = v;
+                }
+                onSaveDates(payload);
                 setEditing(false);
               }}
               className="flex-1 rounded-lg py-2 text-[13px] font-semibold text-white disabled:opacity-50"

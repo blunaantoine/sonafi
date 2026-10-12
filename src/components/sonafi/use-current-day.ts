@@ -9,6 +9,7 @@ interface DayResponse {
   day: DayNumber;
   dates?: Record<string, string>;
   forced?: boolean;
+  numberOfDays?: number;
 }
 
 /**
@@ -16,14 +17,15 @@ interface DayResponse {
  * up the admin-programmed current day within a few seconds. Pauses polling
  * when the tab is hidden, and re-fetches immediately when it becomes visible.
  *
- * The admin sets the day + dates from the dashboard (PUT /api/sonafi/day);
- * everyone else just reads it here. The current day auto-derives from the
- * configured dates, unless the admin forces a day (the "retard" override).
+ * The admin sets the day + dates + numberOfDays from the dashboard
+ * (PUT /api/sonafi/day); everyone else just reads it here. The current day
+ * auto-derives from the configured dates, unless the admin forces a day.
  */
 export function useCurrentDay() {
   const [day, setDay] = useState<DayNumber>(1);
   const [dates, setDates] = useState<Record<string, string>>({});
   const [forced, setForced] = useState(false);
+  const [numberOfDays, setNumberOfDays] = useState(3);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cancelledRef = useRef(false);
 
@@ -32,10 +34,11 @@ export function useCurrentDay() {
       const res = await fetch("/api/sonafi/day", { cache: "no-store" });
       if (!res.ok) return;
       const data = (await res.json()) as DayResponse;
-      if (!cancelledRef.current && (data.day === 1 || data.day === 2 || data.day === 3)) {
+      if (!cancelledRef.current && typeof data.day === "number" && data.day >= 1 && data.day <= 10) {
         setDay(data.day);
         setDates(data.dates ?? {});
         setForced(data.forced ?? false);
+        setNumberOfDays(data.numberOfDays ?? 3);
       }
     } catch {
       /* ignore */
@@ -68,5 +71,5 @@ export function useCurrentDay() {
     };
   }, [fetchOnce]);
 
-  return { day, dates, forced, refetch: fetchOnce };
+  return { day, dates, forced, numberOfDays, refetch: fetchOnce };
 }
