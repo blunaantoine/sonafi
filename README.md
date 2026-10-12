@@ -46,16 +46,17 @@ L'application démarre sur `http://localhost:3000`.
 
 > ⚠️ Changez `ADMIN_PIN` en production (variable d'environnement).
 
-## Mise en ligne (VPS — port 3004)
+## Mise en ligne (VPS — port 3005)
 
 Le guide de déploiement complet, commande par commande, se trouve dans
 **[DEPLOY.md](DEPLOY.md)**. Résumé :
 
-- L'application tourne sur le **port 3004** du VPS (3001-3003 occupés par
-d'autres applications), supervisée par **systemd** (`/etc/systemd/system/sonafi.service`).
+- L'application tourne sur le **port 3005** du VPS (ports 3001-3004 occupés
+par d'autres applications, dont Lousha sur 3004), supervisée par **systemd**
+(`/etc/systemd/system/sonafi.service`).
 - La caméra du scanner nécessitant **HTTPS**, le domaine **`sonafi.oquitogo.com`**
 pointe vers l'application via Nginx ou Caddy (voir `deploy/Caddyfile.sonafi`,
-proxy `localhost:3004`) avec certificat Let's Encrypt automatique.
+proxy `localhost:3005`) avec certificat Let's Encrypt automatique.
 - Accès gestionnaire : le bouton est **masqué** sur la page d'accueil ; accès
 discret via **`https://sonafi.oquitogo.com/?gestionnaire`** (PIN toujours requis).
 - Impression badges : **20 badges par page A4** (5 cm × 6 cm chacun), depuis
