@@ -5,25 +5,33 @@ import type { Role } from "@/lib/sonafi";
 
 const LS_KEY = "sonafi.role";
 
-function readRole(): Role {
-  if (typeof window === "undefined") return "scanner";
+/** null = landing page (no role chosen yet). */
+type RoleOrHome = Role | "home";
+
+function readRole(): RoleOrHome {
+  if (typeof window === "undefined") return "home";
   try {
     const v = window.localStorage.getItem(LS_KEY);
-    if (v === "admin") return "admin";
+    if (v === "admin" || v === "scanner" || v === "verification") return v;
   } catch {
     /* ignore */
   }
-  return "scanner";
+  return "home";
 }
 
 /**
- * Client-side role. Default is "scanner" — the mode every food agent lands in.
- * Becoming "admin" requires entering the PIN via the admin gate; the gate calls
- * /api/sonafi/auth/verify server-side so the role can't be faked by editing
- * localStorage (the privileged override action re-checks the PIN server-side).
+ * Client-side role. The app starts on the landing page ("home"); the user picks
+ * one of three roles:
+ *  - "scanner"      → restauration team (scans pauses)
+ *  - "verification" → verification team (registers daily entries/arrivals)
+ *  - "admin"        → gestionnaire (PIN-gated management)
+ *
+ * Becoming "admin" still requires the PIN via the admin gate; the role in
+ * localStorage alone is not enough — the server re-checks the PIN on every
+ * privileged action.
  */
 export function useRole() {
-  const [role, setRoleState] = useState<Role>(readRole);
+  const [role, setRoleState] = useState<RoleOrHome>(readRole);
 
   // Keep the hook in sync if another tab changes the role.
   useEffect(() => {
@@ -34,17 +42,30 @@ export function useRole() {
     return () => window.removeEventListener("storage", onStorage);
   }, []);
 
-  const setRole = useCallback((r: Role) => {
+  const setRole = useCallback((r: RoleOrHome) => {
     try {
-      window.localStorage.setItem(LS_KEY, r);
+      if (r === "home") {
+        window.localStorage.removeItem(LS_KEY);
+      } else {
+        window.localStorage.setItem(LS_KEY, r);
+      }
     } catch {
       /* ignore */
     }
     setRoleState(r);
   }, []);
 
+  const goHome = useCallback(() => setRole("home"), [setRole]);
   const becomeAdmin = useCallback(() => setRole("admin"), [setRole]);
   const becomeScanner = useCallback(() => setRole("scanner"), [setRole]);
+  const becomeVerification = useCallback(() => setRole("verification"), [setRole]);
 
-  return { role, setRole, becomeAdmin, becomeScanner };
+  return {
+    role,
+    setRole,
+    goHome,
+    becomeAdmin,
+    becomeScanner,
+    becomeVerification,
+  };
 }

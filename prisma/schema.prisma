@@ -19,6 +19,7 @@ model Participant {
   createdAt DateTime @default(now())
 
   pauses Pause[]
+  entries Entry[]
 }
 
 /// A single validated pause taken by a participant on a given day.
@@ -46,4 +47,20 @@ model Setting {
   /// JSON-encoded value (shape depends on the key).
   value     String
   updatedAt DateTime @updatedAt
+}
+
+/// A daily entry/arrival recorded by the verification team. Each participant
+/// can be checked in once per day.
+model Entry {
+  id           Int        @id @default(autoincrement())
+  participantId String
+  /// Summit day, 1, 2 or 3.
+  day          Int
+  timestamp    DateTime   @default(now())
+
+  participant Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@unique([participantId, day], map: "entries_participant_day_unique")
+  @@index([day])
+  @@index([participantId])
 }

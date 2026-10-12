@@ -78,7 +78,7 @@ export function computeAutoPause(now: Date = new Date()): PauseType {
 
 // ---- Roles ------------------------------------------------------------------
 
-export type Role = "scanner" | "admin";
+export type Role = "scanner" | "admin" | "verification";
 
 /** Format a numeric index (1..N) as a badge id, e.g. 42 -> "ID0042". */
 export function formatParticipantId(n: number): string {
@@ -118,12 +118,23 @@ export interface PauseRecord {
   timestamp: string;
 }
 
+export interface EntryRecord {
+  id: number;
+  participantId: string;
+  participantName: string;
+  day: DayNumber;
+  timestamp: string;
+}
+
 export interface StatsResponse {
   totalScans: number;
+  totalEntries: number;
   totalParticipants: number;
   byDay: Record<string, number>;
   byPauseType: Record<PauseType, number>;
+  entriesByDay: Record<string, number>;
   recent: PauseRecord[];
+  recentEntries: EntryRecord[];
 }
 
 // ---- Effective pause (auto + admin override) --------------------------------

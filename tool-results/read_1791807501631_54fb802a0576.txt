@@ -1,0 +1,558 @@
+     1→     1→# Worklog — Sommet Sonafi pause management system
+     2→     2→
+     3→     3→This file is the shared worklog for all agents working on the Sonafi project.
+     4→     4→Append (do NOT overwrite) a new section after each task using the template in
+     5→     5→the system prompt.
+     6→     6→
+     7→     7→---
+     8→     8→Task ID: 1
+     9→     9→Agent: main (orchestrator)
+    10→    10→Task: Set up the foundation of the Sonafi pause management system (Next.js 16
+    11→    11→reimplementation of the Flask `app.py` + French spec `cahier_des_charges_sonafi.md`).
+    12→    12→
+    13→    13→Work Log:
+    14→    14→- Read the spec (`upload/cahier_des_charges_sonafi.md`) and the reference Flask
+    15→    15→  backend (`upload/app.py`). Key requirements: 500 participants (ID0001..ID0500),
+    16→    16→  QR-badge scanning via phone camera, 3 days × 3 pauses (café/déjeuner/jeux),
+    17→    17→  duplicate prevention, shared data across phones, green/red feedback.
+    18→    18→- Installed `qrcode.react` (badge QR generation) and `html5-qrcode` (camera
+    19→    19→  scanning) packages. Dev server confirmed running on port 3000.
+    20→    20→- Defined Prisma schema (`prisma/schema.prisma`) with `Participant` and `Pause`
+    21→    21→  models. `Pause` has a unique constraint on (participantId, day, pauseType) so
+    22→    22→  duplicates are rejected at the DB level. Ran `bun run db:push`.
+    23→    23→- Created API routes under `src/app/api/sonafi/`:
+    24→    24→  - `GET  /api/sonafi/participants`            — list/search
+    25→    25→  - `POST /api/sonafi/participants`            — bulk import + seed 500
+    26→    26→  - `GET  /api/sonafi/participants/[id]`       — existence check
+    27→    27→  - `POST /api/sonafi/pause/check`             — already-taken check
+    28→    28→  - `POST /api/sonafi/pause/record`            — record (rejects duplicates: 409,
+    29→    29→                                                unknown participant: 404)
+    30→    30→  - `GET  /api/sonafi/stats`                   — totals + byDay + byPauseType
+    31→    31→                                                + recent activity
+    32→    32→- Seeded the 500 default participants via the API (`{seed: true}`).
+    33→    33→- Verified the API end-to-end with curl: duplicate pause returns 409, unknown
+    34→    34→  badge returns 404, valid pause returns 200 with participant identity. Then
+    35→    35→  cleaned the test record so the DB starts empty for the real event.
+    36→    36→
+    37→    37→Stage Summary:
+    38→    38→- Foundation complete. Prisma schema + 5 API endpoints + 500 seeded participants.
+    39→    39→- API contract that the frontend MUST use (relative paths, same origin):
+    40→    40→
+    41→    41→  GET  /api/sonafi/participants?search=ID01&limit=200
+    42→    42→  POST /api/sonafi/participants        body: { seed?: boolean, participants?: {id,name}[] }
+    43→    43→  GET  /api/sonafi/participants/[id]   -> { exists, id?, name? }
+    44→    44→  POST /api/sonafi/pause/check         body: { participantId, day:1|2|3, pauseType:"cafe"|"dejeuner"|"jeux" }
+    45→    45→                                       -> { already_taken: boolean, timestamp?: string }
+    46→    46→  POST /api/sonafi/pause/record        body: { participantId, day, pauseType }
+    47→    47→                                       -> 200 { success:true, participant:{id,name}, pause:{day,pauseType,timestamp} }
+    48→    48→                                          409 { success:false, code:"already_taken", participant:{id,name} }
+    49→    49→                                          404 { success:false, code:"unknown_participant" }
+    50→    50→  GET  /api/sonafi/stats?recent=10     -> { totalScans, totalParticipants,
+    51→    51→                                            byDay:{1,2,3}, byPauseType:{cafe,dejeuner,jeux},
+    52→    52→                                            recent:[{participantId,participantName,day,pauseType,timestamp}] }
+    53→    53→
+    54→    54→- Day values are integers 1/2/3. pauseType values are "cafe" | "dejeuner" | "jeux".
+    55→    55→- Participants all exist (ID0001..ID0500) with placeholder names
+    56→    56→  "Participant IDxxxx" — the Participants tab must let the user import real names
+    57→    57→  (CSV/JSON). Importing re-upserts so existing names are overwritten.
+    58→    58→- The only user-visible route is `/` (src/app/page.tsx). Do NOT create other pages.
+    59→    59→
+    60→    60→---
+    61→    61→Task ID: 6d
+    62→    62→Agent: full-stack-developer (Stats tab)
+    63→    63→Task: Built the live Stats dashboard tab (`StatsTab`) — KPI cards, by-pause-type
+    64→    64→and by-day breakdowns, recent activity feed, with 5 s auto-refresh while visible
+    65→    65→and a loading skeleton.
+    66→    66→
+    67→    67→Work Log:
+    68→    68→- Read the worklog foundation + `src/lib/sonafi.ts` (shared types/constants:
+    69→    69→  `StatsResponse`, `PauseRecord`, `PAUSE_META`, `PAUSE_TYPES`, `DAYS`,
+    70→    70→  `DAY_LABELS`, `formatTimestamp`, `TOTAL_PARTICIPANTS`) and confirmed the
+    71→    71→  `/api/sonafi/stats?recent=20` response shape by reading its route.ts.
+    72→    72→- Created `src/components/sonafi/stats-tab.tsx` as a single self-contained
+    73→    73→  "use client" component (kept everything in one file to avoid cross-file
+    74→    74→  coupling with the other parallel agents working in the same folder).
+    75→    75→- Implemented a `useStats()` hook: fetches `/api/sonafi/stats?recent=20` on
+    76→    76→  mount, polls every 5 s with `setInterval`, skips ticks when
+    77→    77→  `document.visibilityState !== "visible"`, and re-fetches on the
+    78→    78→  `visibilitychange` event when returning to the tab. Tracks `loading`
+    79→    79→  (first load only), `error`, `lastUpdated` and exposes `refetch`.
+    80→    80→- Implemented a `useRelativeTime()` hook that re-renders every 1 s so the
+    81→    81→  "Mis à jour il y a Xs" label stays fresh without re-fetching.
+    82→    82→- Top KPI row (3 cards, `grid-cols-1 sm:grid-cols-3`):
+    83→    83→  • Total passages — emerald accent, big tabular-nums number with a subtle
+    84→    84→    Framer Motion fade-in on value change.
+    85→    85→  • Participantes inscrites — 500 (neutral teal accent).
+    86→    86→  • Taux de service potentiel — `totalScans / (TOTAL_PARTICIPANTS * 9)` %
+    87→    87→    with a shadcn `Progress` bar (emerald track + emerald fill via
+    88→    88→    `[&>div]:bg-emerald-500`).
+    89→    89→- "Passages par type de pause" card: custom Tailwind horizontal bars for
+    90→    90→  café/dejeuner/jeux, each with emoji + label + count + animated width bar
+    91→    91→  (amber/orange/fuchsia via local `PAUSE_BAR` map derived from
+    92→    92→  `PAUSE_META`). Shows all three even when 0 (max guard = 1).
+    93→    93→- "Passages par jour" card: 3 rows (Jour 1/2/3) with emerald shade bars
+    94→    94→  (emerald-400/500/600) and a numbered day badge.
+    95→    95→- "Activité récente" card: scrollable `<ul max-h-80 overflow-y-auto>` with
+    96→    96→  the latest ~20 scans, newest first. Each row: coloured dot by pause type,
+    97→    97→  participant id (mono) + name, day label chip, pause label chip
+    98→    98→  (`PAUSE_META.soft`), and `formatTimestamp(timestamp)`. Empty state shows
+    99→    99→  "Aucun passage enregistré pour le moment." with an icon.
+   100→   100→- Loading skeleton (`StatsSkeleton`) mirroring the final layout (3 KPI
+   101→   101→  cards + 2 breakdown cards + activity feed skeletons) shown only on first
+   102→   102→  load (`loading && !data`).
+   103→   103→- Error state card (red) with a "Réessayer" button if the first fetch
+   104→   104→  fails; subsequent fetch failures while data is already present show a
+   105→   105→  subtle amber banner so the user keeps seeing stale data.
+   106→   106→- Live badge in the header line: pulsing emerald dot + "Mis à jour il y a
+   107→   107→  Xs" / "En cours…".
+   108→   108→- Mobile-first responsive (`grid-cols-1 sm:grid-cols-3` for KPIs,
+   109→   109→  `lg:grid-cols-2` for the breakdowns, full-width activity feed).
+   110→   110→- Verified with `bun run lint` (clean) and `bunx tsc --noEmit` — zero
+   111→   111→  errors/warnings attributable to my file. The remaining compile errors in
+   112→   112→  `dev.log` and `tsc` are from other agents' not-yet-created modules
+   113→   113→  (`scan-tab`, `badges-tab`, `participants-tab`, `use-total-scans`) — once
+   114→   114→  they land, the `/` route will compile end-to-end.
+   115→   115→
+   116→   116→Stage Summary:
+   117→   117→- File created: `src/components/sonafi/stats-tab.tsx` (single file,
+   118→   118→  default-exports `StatsTab`, also a named export).
+   119→   119→- Imports only from `@/lib/sonafi` (shared) and `@/components/ui/*`
+   120→   120→  (Card, Progress, Skeleton) + `framer-motion` + `lucide-react` — no new
+   121→   121→  dependencies added.
+   122→   122→- Polls `/api/sonafi/stats?recent=20` every 5 s, paused when the tab is
+   123→   123→  hidden. One fetch per 5 s — no per-second churn.
+   124→   124→- Uses emerald/teal for the global accent and the `PAUSE_META` soft colours
+   125→   125→  (amber/orange/fuchsia) for the pause-type chips and bars. No indigo/blue.
+   126→   126→- All text French, all numbers `tabular-nums` for smooth visual updates.
+   127→   127→- No edits to `page.tsx` (it already imports `StatsTab` from the right
+   128→   128→  path). No Prisma changes. No new API routes.
+   129→   129→
+   130→   130→---
+   131→   131→Task ID: 6b
+   132→   132→Agent: full-stack-developer (Badges tab)
+   133→   133→Task: Build the Badges tab — generates 500 printable QR badges for Sommet Sonafi
+   134→   134→participants (ID0001..ID0500) with a toolbar (range controls, print button, count,
+   135→   135→QR note), responsive on-screen grid, and an A4 print layout with cut guides.
+   136→   136→
+   137→   137→Work Log:
+   138→   138→- Read the foundation: `worklog.md` (Task 1), `src/lib/sonafi.ts` (shared constants —
+   139→   139→  `formatParticipantId`, `TOTAL_PARTICIPANTS`, `Participant` type), and the spec
+   140→   140→  `upload/cahier_des_charges_sonafi.md`.
+   141→   141→- Read the parent route `src/app/page.tsx` to confirm `BadgesTab` is imported as a
+   142→   142→  named export from `@/components/sonafi/badges-tab` and rendered inside a
+   143→   143→  `TabsContent` (so `[role="tablist"]` + `header` + `footer` come from the parent and
+   144→   144→  must be hidden in print via the injected stylesheet).
+   145→   145→- Created `src/components/sonafi/badge-card.tsx` — a single printable badge:
+   146→   146→  emerald/teal gradient header strip ("SOMMET SONAFI" + subtitle "Sommet national
+   147→   147→  de la jeune fille"), centered QRCodeSVG (size 120, level "M", value = plain
+   148→   148→  participant id string), bold mono id, muted name, emerald footer "3 jours ·
+   149→   149→  3 pauses". QR fg is `#0f172a` for max scan reliability; branding is emerald.
+   150→   150→- Created `src/components/sonafi/badges-tab.tsx`:
+   151→   151→  • Fetches ALL 500 participants once on mount via
+   152→   152→    `GET /api/sonafi/participants?limit=0`. Builds a `Map<id, Participant>` for
+   153→   153→    O(1) slicing — never refetches on range change.
+   154→   154→  • Toolbar Card (`p-4`): range "De"/"à" number inputs (clamped 1..500 via derived
+   155→   155→    clamping; raw values stored as strings so users can clear/retype), live count
+   156→   156→    "X badges affichés", note "Le contenu du QR est l'identifiant (ex: ID0042).",
+   157→   157→    and a primary "Imprimer" button (printer icon) → `window.print()`.
+   158→   158→  • Responsive on-screen grid `grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3`.
+   159→   159→  • Loading state: 8 skeleton badges via the shared `Skeleton` component.
+   160→   160→  • Error state: friendly French message with retry hint.
+   161→   161→  • Empty state: "Aucune participante à afficher dans cette plage."
+   162→   162→  • Falls back to `Participant {id}` if the API has no real name for that id.
+   163→   163→- Injected a `<style dangerouslySetInnerHTML>` scoped to `@media print` that:
+   164→   164→  • Sets `@page { size: A4 portrait; margin: 10mm }`.
+   165→   165→  • Hides `body > div > header`, `body > div > footer`, `header`, `footer`,
+   166→   166→    `[role="tablist"]`, and `.sonafi-no-print` (the toolbar).
+   167→   167→  • Resets `main`/`[role="tabpanel"]` to full width with no padding.
+   168→   168→  • Forces the badge grid to 2 columns × 4 rows = ~8 badges per A4 page with
+   169→   169→    `break-inside: avoid` (and the legacy `page-break-inside: avoid`).
+   170→   170→  • Each badge gets a dashed border as a cut guide and `print-color-adjust: exact`
+   171→   171→    so the emerald gradient header survives printing.
+   172→   172→  • QR SVG scales to 28mm × 28mm in print for reliable scanning.
+   173→   173→- Verified: `bun run lint` clean. `dev.log` shows only pre-existing errors from
+   174→   174→  sibling tabs not yet created by their agents (scan-tab, participants-tab,
+   175→   175→  stats-tab, use-total-scans) — no errors mention `badges-tab.tsx` or
+   176→   176→  `badge-card.tsx`.
+   177→   177→
+   178→   178→Stage Summary:
+   179→   179→- Files created:
+   180→   180→  - `src/components/sonafi/badge-card.tsx` (named + default export `BadgeCard`)
+   181→   181→  - `src/components/sonafi/badges-tab.tsx` (named + default export `BadgesTab`)
+   182→   182→- **QR payload contract**: the QR encodes the plain participant id string, e.g.
+   183→   183→  `"ID0042"` — NOT a URL, NOT JSON. The Scan tab (Task 6a) MUST scan this exact
+   184→   184→  string and treat it as a participant id. Do not change the payload format.
+   185→   185→- API used: `GET /api/sonafi/participants?limit=0` →
+   186→   186→  `{ total, participants: {id, name}[] }`. Names default to
+   187→   187→  `"Participant IDxxxx"` until imported by the Participants tab (Task 6c).
+   188→   188→- Print: 2×4 grid on A4 portrait ≈ 8 badges per page, dashed cut guides,
+   189→   189→  `break-inside: avoid`, `print-color-adjust: exact`. The injected stylesheet
+   190→   190→  hides the parent header/footer/tabs-list automatically.
+   191→   191→- Both files are `"use client"` components using only Tailwind + shadcn/ui
+   192→   192→  (`Card`, `Input`, `Button`, `Skeleton`) + `qrcode.react`'s `QRCodeSVG`.
+   193→   193→  No indigo/blue used — emerald/teal branding only.
+   194→   194→- Next agent (Task 6a Scan tab): the QR value your scanner reads will be a plain
+   195→   195→  id string like `"ID0042"`. Pass it directly to the existing
+   196→   196→  `GET /api/sonafi/participants/[id]` and `POST /api/sonafi/pause/{check,record}`
+   197→   197→  endpoints.
+   198→   198→
+   199→   199→---
+   200→   200→Task ID: 6c
+   201→   201→Agent: full-stack-developer (Participants tab)
+   202→   202→Task: Build the Participants tab of the Sommet Sonafi pause management UI — a
+   203→   203→client component `ParticipantsTab` that lets organisers (1) import the real
+   204→   204→participant names from a CSV/JSON file, (2) search / view / edit the list of
+   205→   205→500 participants. The page.tsx already imports
+   206→   206→`{ ParticipantsTab } from "@/components/sonafi/participants-tab"` so the file
+   207→   207→must expose both a named and a default export.
+   208→   208→
+   209→   209→Work Log:
+   210→   210→- Read the foundation: worklog.md (API contract + seed data), the spec
+   211→   211→  `upload/cahier_des_charges_sonafi.md`, and `src/lib/sonafi.ts` (re-used
+   212→   212→  `Participant`, `TOTAL_PARTICIPANTS`).
+   213→   213→- Inspected existing layout.tsx (Toaster from `@/components/ui/toaster` is
+   214→   214→  wired → used the `useToast` hook from `@/hooks/use-toast`) and the shadcn
+   215→   215→  primitives already present (card, button, input, table, dialog, badge,
+   216→   216→  progress, skeleton, etc.).
+   217→   217→- Created 3 files under `src/components/sonafi/`:
+   218→   218→  1. `participants-import-card.tsx` — drag-and-drop + click-to-pick file
+   219→   219→     picker, hand-rolled CSV parser (quoted fields, `;` fallback when `,`
+   220→   220→     yields a single column, header `id,name` required, case-insensitive),
+   221→   221→     JSON parser (array of `{id,name}`), preview table of first 5 rows +
+   222→   222→     "X participantes seront importées", "Importer" button POSTing
+   223→   223→     `{ participants: [...] }` to `/api/sonafi/participants`, "Télécharger un
+   224→   224→     modèle CSV" link generating a BOM-prefixed CSV Blob with 3 example rows.
+   225→   225→     All errors surfaced as destructive toasts.
+   226→   226→  2. `participants-list.tsx` — debounced (~250 ms) client-side search over the
+   227→   227→     already-loaded list, scrollable container (`max-h-[28rem] overflow-y-auto`
+   228→   228→     with a custom emerald webkit scrollbar), responsive layout (card list on
+   229→   229→     mobile `md:hidden`, shadcn `Table` on `md+`), per-row "Modifier" button
+   230→   230→     (pencil) opening a Dialog that POSTs a one-element array to upsert the
+   231→   231→     single name, "X / 500 avec nom réel" progress header with a Progress bar,
+   232→   232→     loading skeleton, empty state, and a Refresh button. A participant is
+   233→   233→     considered "named" when `p.name !== \`Participant ${p.id}\`` (matches the
+   234→   234→     seed placeholder produced by the POST route).
+   235→   235→  3. `participants-tab.tsx` — orchestrator: fetches all 500 via
+   236→   236→     `GET /api/sonafi/participants?limit=0` on mount (`cache: "no-store"`),
+   237→   237→     holds the shared `{ participants, loading, error }` state, passes a
+   238→   238→     `refresh` callback to both children so a successful import or single
+   239→   239→     edit re-fetches the list.
+   240→   240→- Used emerald as the accent throughout, all labels in French, 44 px+
+   241→   241→  touch targets on mobile, no indigo/blue.
+   242→   242→- Verified: `bun run lint` passes with zero issues in my files. The dev log
+   243→   243→  shows a single remaining compile error, but it concerns
+   244→   244→  `@/components/sonafi/use-total-scans` (and the still-missing scan-tab /
+   245→   245→  badges-tab / stats-tab created by other agents) — NOT my files. The
+   246→   246→  `participants-tab` import on line 9 of page.tsx now resolves correctly.
+   247→   247→
+   248→   248→Stage Summary:
+   249→   249→- Files created (all under `src/components/sonafi/`):
+   250→   250→  - `participants-tab.tsx`        (orchestrator, default + named export)
+   251→   251→  - `participants-import-card.tsx` (file upload, CSV/JSON parse, preview,
+   252→   252→    import POST, CSV template download)
+   253→   253→  - `participants-list.tsx`        (search, responsive list/table, edit
+   254→   254→    dialog, progress header, skeleton, empty state, refresh)
+   255→   255→- API usage: `GET /api/sonafi/participants?limit=0` for the list and
+   256→   256→  `POST /api/sonafi/participants` for both bulk import and single-name edit
+   257→   257→  (one-element array — relies on the upsert behaviour from Task 1).
+   258→   258→- Placeholder detection: a participant is "imported/named" iff
+   259→   259→  `p.name !== \`Participant ${p.id}\`` (exactly what the seed route produces).
+   260→   260→- Next agent must know:
+   261→   261→  - The Participants tab is fully functional in isolation; the only page.tsx
+   262→   262→    compile errors come from the still-missing `scan-tab`, `badges-tab`,
+   263→   263→    `stats-tab` and `use-total-scans` modules (other agents' tasks).
+   264→   264→  - I used the `useToast` hook (`@/hooks/use-toast`) — Toaster is already
+   265→   265→    rendered in layout.tsx. Do not add a second Toaster.
+   266→   266→  - All labels are French; emerald is the accent colour; no indigo/blue.
+   267→   267→
+   268→   268→---
+   269→   269→Task ID: 6a
+   270→   270→Agent: full-stack-developer (Scan tab)
+   271→   271→Task: Built `src/components/sonafi/scan-tab.tsx` — the phone camera scanner used
+   272→   272→by food staff to validate participant pauses.
+   273→   273→
+   274→   274→Work Log:
+   275→   275→- Read the worklog + spec + `src/lib/sonafi.ts` to reuse the shared vocabulary
+   276→   276→  (`PAUSE_META`, `DAYS`, `PAUSE_TYPES`, `DAY_LABELS`, `formatTimestamp`,
+   277→   277→  `DayNumber`, `PauseType`). Inspected `html5-qrcode`'s `.d.ts` to confirm the
+   278→   278→  exact `Html5Qrcode` class API (`start`, `stop`, `pause`, `resume`, `clear`,
+   279→   279→  `getCameras`, `isScanning` field).
+   280→   280→- Implemented the component as a single self-contained "use client" file
+   281→   281→  (default-exported + named export for consistency with the other sonafi tabs).
+   282→   282→  Sub-components `StatusPill` and `ResultOverlay` live at the bottom of the
+   283→   283→  same file.
+   284→   284→- Day selector (3 big toggle buttons, emerald accent) + pause selector (3 big
+   285→   285→  toggle buttons using `PAUSE_META.soft`/`ring` + emoji) — both persist to
+   286→   286→  `localStorage` under `sonafi.scan.day` / `sonafi.scan.pauseType` with
+   287→   287→  sanitised readers (default Jour 1 / café).
+   288→   288→- Camera view: dynamic `import("html5-qrcode")` inside the start effect (avoids
+   289→   289→  SSR). Uses `Html5Qrcode.getCameras()` to enumerate, prefers back camera
+   290→   290→  (`facingMode: { ideal: "environment" }` when no deviceId is known, otherwise
+   291→   291→  `deviceId: { exact }`). Config: `fps: 10`, `qrbox` is a responsive function
+   292→   292→  returning 70% of the smaller viewfinder edge. Scan reticle is a custom
+   293→   293→  white-corner-brackets + emerald animated scan line overlay (no library UI).
+   294→   294→- Scan flow: `handleScan` debounces the same decoded string for 2.5s
+   295→   295→  (`lastScanRef`) and guards against concurrent POSTs (`inFlightRef`). It calls
+   296→   296→  `recordPause(participantId)` which POSTs to `/api/sonafi/pause/record` with
+   297→   297→  the snapshot of the currently selected day/pause (via refs so changing the
+   298→   298→  selectors mid-scan doesn't affect an in-flight request).
+   299→   299→- Result overlay: full-screen, framer-motion fade + spring-scale-in. Five
+   300→   300→  states: `loading` (dark slate + spinner), `success` (emerald + Check, "Pause
+   301→   301→  validée"), `duplicate` (rose + X, "Déjà servi(e)"), `unknown` (amber +
+   302→   302→  AlertTriangle, "Badge non reconnu"), `error` (slate-700 + WifiOff). Hides
+   303→   303→  after ~2.2s then auto-resumes scanning. Vibration patterns: 120ms on
+   304→   304→  success, `[60,60,60]` on duplicate/unknown, all guarded by
+   305→   305→  `navigator.vibrate?.()` opt-in.
+   306→   306→- Camera is paused via `html5Qrcode.pause(true)` while the overlay is showing
+   307→   307→  and `resume()`-d when it dismisses (effect keyed on `overlay`).
+   308→   308→- Friendly French camera errors: detect `NotAllowedError`, `NotFoundError`,
+   309→   309→  `NotReadableError`, insecure-context and translate to short French messages
+   310→   310→  + a "Réessayer" button that re-runs `startCamera()`.
+   311→   311→- Recent scans list: `max-h-72 overflow-y-auto` with a custom thin webkit
+   312→   312→  scrollbar. Each row: solid coloured dot per pause type (amber/orange/fuchsia),
+   313→   313→  participant name + monospaced id, day label · pause label · formatted
+   314→   314→  timestamp, and a status pill (Validé/Doublon/Inconnu/Erreur). Empty state:
+   315→   315→  "Aucun scan pour le moment". Newest first, capped at 12.
+   316→   316→- Session counter: "X scans cette session" beside the camera header.
+   317→   317→- "Changer de caméra" button (top-right of the camera card) appears only when
+   318→   318→  ≥2 cameras were detected; cycles to the next one.
+   319→   319→- Cleanup: on unmount, `stop()` then `clear()` the html5-qrcode instance
+   320→   320→  inside try/catch, null the ref, clear the resume timer, reset guard refs —
+   321→   321→  so the camera stream is never leaked.
+   322→   322→- Lint: `bun run lint` is clean (0 errors, 0 warnings) — only one
+   323→   323→  `react-hooks/exhaustive-deps` disable was originally needed, removed once
+   324→   324→  the rule stopped firing. `tsc --noEmit` reports no errors in scan-tab.tsx
+   325→   325→  (the remaining TS errors in the repo come from `page.tsx`'s missing
+   326→   326→  `use-total-scans` import and an unrelated Prisma typing issue in
+   327→   327→  `participants/route.ts`, both owned by other agents).
+   328→   328→
+   329→   329→Stage Summary:
+   330→   330→- Files created:
+   331→   331→  - `/home/z/my-project/src/components/sonafi/scan-tab.tsx` (only file).
+   332→   332→- Key decisions:
+   333→   333→  - Single self-contained file (no `scan-result-overlay.tsx` helper) — keeps
+   334→   334→    the overlay state machine local to the parent.
+   335→   335→  - `Html5Qrcode` (manual class) rather than `Html5QrcodeScanner` so we keep
+   336→   336→    full control of the styling/reticle.
+   337→   337→  - Camera "pause" is achieved by `instance.pause(true)` (pauses scanning +
+   338→   338→    video) instead of `stop()/start()` — much cheaper on the device and the
+   339→   339→    html5-qrcode instance is reused across scans.
+   340→   340→  - Day + pause values are mirrored into refs so the (once-created) scan
+   341→   341→    callback always uses the latest values without re-creating the camera
+   342→   342→    session.
+   343→   343→  - All selectors persist to `localStorage` so a refresh mid-pause does not
+   344→   344→    lose context.
+   345→   345→- Next agent notes:
+   346→   346→  - The page won't render until `src/components/sonafi/use-total-scans.tsx`
+   347→   347→    (referenced by `src/app/page.tsx`) is created — that's another agent's
+   348→   348→    task, NOT mine, and I did not touch `page.tsx` or any other file.
+   349→   349→  - `ScanTab` is exported both as named (`export function ScanTab`) and
+   350→   350→    default (`export default ScanTab`).
+   351→   351→
+   352→   352→---
+   353→   353→Task ID: 5 + 7 (orchestrator)
+   354→   354→Agent: main (orchestrator)
+   355→   355→
+   356→   356→Task: Build the page shell + shared constants, then integrate & verify the four
+   357→   357→tabs delivered by subagents 6a/6b/6c/6d, and run end-to-end browser verification.
+   358→   358→
+   359→   359→Work Log:
+   360→   360→- Created shared vocabulary `src/lib/sonafi.ts` (PauseType, DayNumber, PAUSE_TYPES,
+   361→   361→  DAYS, PAUSE_META with French labels + emoji + Tailwind colour tokens, DAY_LABELS,
+   362→   362→  formatParticipantId, formatTimestamp, response types).
+   363→   363→- Built `src/app/page.tsx`: sticky header (logo + title + live scan counter badge),
+   364→   364→  sticky tab bar (Scanner/Badges/Participantes/Statistiques), content area, sticky
+   365→   365→  footer with the event tagline. Min-h-screen flex-col layout so the footer sticks
+   366→   366→  on short pages and pushes down naturally on long pages.
+   367→   367→- Created `src/components/sonafi/use-total-scans.ts` hook (polls /api/sonafi/stats
+   368→   368→  every 4s while the Scan tab is active).
+   369→   369→- Integrated the four tab components delivered by subagents 6a/6b/6c/6d.
+   370→   370→- Fixed two issues found during Agent Browser verification:
+   371→   371→  1. `use-total-scans.ts` had not persisted (missing file) → recreated it.
+   372→   372→  2. Stats tab KPI card used `teal-100/teal-700` (blue-leaning) → switched to
+   373→   373→     `emerald-100/emerald-700` to respect the "no indigo/blue" rule.
+   374→   374→  3. Tab bar was not sticky → wrapped TabsList in a sticky container
+   375→   375→     (`sticky top-[65px] z-20 bg-background/90 backdrop-blur`) so users can switch
+   376→   376→     tabs on mobile without scrolling to the top.
+   377→   377→- Agent Browser end-to-end verification (desktop 1280x900 + mobile iPhone 14):
+   378→   378→  * Scan tab: renders day selector, pause selector, camera region (graceful
+   379→   379→    "Caméra indisponible" + "Réessayer" in headless context), recent scans list.
+   380→   380→  * Badges tab: 500 badge cards render with QRCodeSVG (507 SVGs, 501 cards),
+   381→   381→    toolbar with De/à range + Imprimer, responsive grid, print stylesheet hides
+   382→   382→    chrome and lays out ~8 badges/A4.
+   383→   383→  * Participants tab: full 500-row table, search, import + CSV template download,
+   384→   384→    edit dialog tested (ID0001 -> "Aïssatou Diallo" saved, toast shown, row
+   385→   385→    updated, "1 / 500 avec nom réel" progress correct).
+   386→   386→  * Stats tab: KPIs (6 total / 500 inscrites / 0,1% taux), pause-type bars
+   387→   387→    (café 3 / déjeuner 2 / jeux 1), day bars (J1=4 / J2=1 / J3=1), recent
+   388→   388→    activity feed with 6 entries newest-first, live "Mis à jour à l'instant".
+   389→   389→  * Sticky footer present and pushed down naturally on long pages (verified
+   390→   390→    bounding box at scroll bottom: top:859 bottom:900 in 900px viewport).
+   391→   391→  * Sticky tabs verified on mobile AND desktop (top:73 after scroll).
+   392→   392→  * No runtime errors, no console errors, lint clean.
+   393→   393→  * Duplicate-prevention verified via curl (409 on re-scan, 404 on unknown badge).
+   394→   394→- Cleaned the test data: deleted the 6 verification pauses and reset ID0001's name
+   395→   395→  back to "Participant ID0001" so the DB ships pristine (0 pauses, 500 participants).
+   396→   396→
+   397→   397→Stage Summary:
+   398→   398→- The Sommet Sonafi pause management system is COMPLETE and browser-verified.
+   399→   399→- 500 participants seeded (ID0001..ID0500) with placeholder names.
+   400→   400→- All 4 tabs functional. Print-ready badges. CSV/JSON name import. Live stats.
+   401→   401→- Emerald/teal palette throughout (no indigo/blue). Mobile-first responsive.
+   402→   402→- Sticky header + sticky tab bar + sticky footer.
+   403→   403→- To go live: import the real participant names (Participants tab → CSV), print the
+   404→   404→  badges (Badges tab → Imprimer), deploy to an HTTPS VPS (camera requires HTTPS).
+   405→   405→
+   406→   406→---
+   407→   407→Task ID: 8
+   408→   408→Agent: main (orchestrator)
+   409→   409→Task: Remove the "jeux" (games) pause — the summit now tracks only 2 pauses/day
+   410→   410→(café + déjeuner) instead of 3.
+   411→   411→
+   412→   412→Work Log:
+   413→   413→- Removed "jeux" from the shared vocabulary in `src/lib/sonafi.ts`: PauseType
+   414→   414→  union, PAUSE_TYPES array, and PAUSE_META map (also dropped the fuchsia palette).
+   415→   415→- Updated zod enums in `pause/check` and `pause/record` API routes so "jeux" is
+   416→   416→  now a 400 validation error.
+   417→   417→- Removed `jeux: 0` default from the stats API route's pauseCounts map.
+   418→   418→- Removed `jeux: "bg-fuchsia-500"` from the PAUSE_DOT map in scan-tab.tsx and
+   419→   419→  from the PAUSE_BAR + PAUSE_DOT maps in stats-tab.tsx; cleaned the localStorage
+   420→   420→  pause validator in scan-tab.tsx.
+   421→   421→- Updated POTENTIAL_MAX in stats-tab.tsx (3 days × 2 pauses × 500 = 3000, was 4500).
+   422→   422→- Updated copy: badge footer "3 jours · 2 pauses", page footer "2 pauses par jour".
+   423→   423→- Since PauseType is derived from PAUSE_TYPES (iterated in the UI), the Scan tab
+   424→   424→  pause selector and the Stats tab pause bars now render only café + déjeuner.
+   425→   425→
+   426→   426→Verification:
+   427→   427→- `bun run lint` clean.
+   428→   428→- API: POST pause/record with pauseType "jeux" → 400; "cafe" → 200.
+   429→   429→- /api/sonafi/stats byPauseType shape = {cafe, dejeuner} (no jeux key).
+   430→   430→- Browser: Scan tab shows 2 pause buttons (☕ café / 🍽️ déjeuner); Stats tab
+   431→   431→  shows 2 pause bars; footer reads "2 pauses par jour". No runtime errors.
+   432→   432→
+   433→   433→Stage Summary:
+   434→   434→- The system now manages 2 pauses per day (café + déjeuner) across 3 days.
+   435→   435→- 500 participants + 2 pauses/day = 1000 potential scans/day, 3000 total.
+   436→   436→- No DB migration needed (pauseType is a free String column); 0 rows in DB.
+   437→   437→
+   438→   438→---
+   439→   439→Task ID: 9
+   440→   440→Agent: main (orchestrator)
+   441→   441→Task: Split the app into two roles (scanner vs admin) with role-based views, make
+   442→   442→the pause type automatic by time-of-day (8h–11h café, 11h+ déjeuner), and let
+   443→   443→only the admin override the pause (shared across all phones) in case of delay.
+   444→   444→
+   445→   445→Work Log:
+   446→   446→- Added a `Setting` model (key/value) to Prisma to store the global pause
+   447→   447→  override server-side, so every scanner phone picks it up. Pushed to DB.
+   448→   448→- Shared lib (`src/lib/sonafi.ts`): added `computeAutoPause(now)` (8h–11h →
+   449→   449→  café, ≥11h → déjeuner, <8h → café default), `CAFE_START_HOUR`/`DEJEUNER_START_HOUR`,
+   450→   450→  `PAUSE_WINDOWS` labels, `Role` type ("scanner"|"admin"), `PauseSource` and
+   451→   451→  `EffectivePause` types.
+   452→   452→- API routes:
+   453→   453→  - `POST /api/sonafi/auth/verify` {pin} → {valid} — checks ADMIN_PIN env
+   454→   454→    (default "sonafi2025") server-side.
+   455→   455→  - `GET /api/sonafi/pause/current` → {pauseType, source:"auto"|"override",
+   456→   456→    autoPauseType, setAt?} — the single source of truth scanners poll.
+   457→   457→  - `POST /api/sonafi/pause/override` {pin, pauseType:"cafe"|"dejeuner"|null} →
+   458→   458→    admin-only (PIN re-checked server-side). null clears the override.
+   459→   459→- Client hooks/components:
+   460→   460→  - `use-role.ts` — role in localStorage ("scanner" default, "admin" after PIN).
+   461→   461→  - `use-effective-pause.ts` — polls /pause/current every 4s, pauses when tab
+   462→   462→    hidden, exposes `refetch` for immediate refresh after an override.
+   463→   463→  - `admin-gate.tsx` — PIN dialog (wrong PIN → error, correct → admin mode +
+   464→   464→    stashes PIN in sessionStorage for the override action).
+   465→   465→  - `pause-override-bar.tsx` — admin control: shows active pause (auto/forced)
+   466→   466→    + "Forcer café" / "Forcer déjeuner" / "Auto" buttons. Uses the stashed PIN;
+   467→   467→    server re-validates on every action.
+   468→   468→- Refactored `scan-tab.tsx`: removed the manual pause selector entirely. The
+   469→   469→  pause is now the effective pause (auto by clock, or admin override). Added a
+   470→   470→  `PauseBadge` showing "☕ Pause café AUTO De 8h à 11h" or "🍽️ Pause déjeuner
+   471→   471→  FORCÉE — Forcée par l'admin". Kept the day selector.
+   472→   472→- Refactored `page.tsx` into role-based views:
+   473→   473→  - **Scanner** (default): full-screen scan only — day selector, auto pause
+   474→   474→    badge, camera, recent scans. NO management tabs. A small lock icon in the
+   475→   475→    header opens the admin PIN gate.
+   476→   476→  - **Admin** (after PIN): a `PauseOverrideBar` (always visible at the top) +
+   477→   477→    management tabs (Badges / Participantes / Statistiques). NO scan tab — scan
+   478→   478→    is the scanner's job. A "Quitter l'admin" button returns to scanner mode.
+   479→   479→- Verified end-to-end with Agent Browser (desktop + iPhone 14):
+   480→   480→  * Scanner view: auto pause badge "Pause café AUTO De 8h à 11h", lock icon
+   481→   481→    present, no management tabs.
+   482→   482→  * Admin gate: wrong PIN → "Code administrateur incorrect." error; correct
+   483→   483→    PIN (sonafi2025) → admin view appears.
+   484→   484→  * Override flow: "Forcer déjeuner" → pause becomes "Pause déjeuner FORCÉE",
+   485→   485→    API confirms source:"override". "Quitter l'admin" → scanner view
+   486→   486→    immediately shows "🍽️ Pause déjeuner FORCÉE" (override propagated via the
+   487→   487→    shared DB). "Auto" clears the override → back to "Pause café AUTO".
+   488→   488→  * Mobile responsive, no runtime errors, lint clean.
+   489→   489→  * DB clean: 0 pauses, 500 participants, 0 overrides.
+   490→   490→
+   491→   491→Stage Summary:
+   492→   492→- Two roles: scanner (scan-only, full screen, auto pause) and admin (PIN-gated,
+   493→   493→  manages badges/participants/stats + controls the pause override).
+   494→   494→- Pause type is automatic by time (8h–11h café, 11h+ déjeuner); only the admin
+   495→   495→  can force a different one (shared across all phones) when the schedule is
+   496→   496→  delayed. Scanners pick it up within ~4s via polling.
+   497→   497→- Admin PIN default: "sonafi2025" (override via ADMIN_PIN env var at deploy).
+   498→   498→- The scanner no longer chooses the pause — the clock (or admin) decides.
+   499→   499→
+   500→   500→---
+   501→   501→Task ID: 10
+   502→   502→Agent: main (orchestrator)
+   503→   503→Task: Make the participant count admin-configurable (instead of hardcoded 500)
+   504→   504→and push the code to the GitHub repo https://github.com/blunaantoine/sonafi.git.
+   505→   505→
+   506→   506→Work Log:
+   507→   507→- Shared lib (`src/lib/sonafi.ts`): renamed the constant to
+   508→   508→  `DEFAULT_TOTAL_PARTICIPANTS = 500` (kept `TOTAL_PARTICIPANTS` alias for the
+   509→   509→  few places that need a constant) and added `parseParticipantId("ID0042") → 42`.
+   510→   510→- Added `GET/PUT /api/sonafi/settings` (PIN-protected PUT):
+   511→   511→  - GET returns `{ totalParticipants, actual }`.
+   512→   512→  - PUT `{ pin, totalParticipants }` stores the configured count in the Setting
+   513→   513→    table and syncs the Participant table: creates missing IDs (1..N) without
+   514→   514→    overwriting existing imported names, and removes participants beyond N that
+   515→   515→    have NO pauses (scan history is always preserved).
+   516→   516→  - Worked around Prisma/SQLite not supporting `createMany skipDuplicates` by
+   517→   517→    fetching existing IDs first and only inserting the missing ones.
+   518→   518→- Added `useSettings` hook (polls every 8s) + `ConfigCard` admin control (input
+   519→   519→  + Appliquer button, uses the stashed admin PIN, server re-validates).
+   520→   520→- Made the participant count dynamic across the UI:
+   521→   521→  - Header subtitle (scanner & admin).
+   522→   522→  - Stats tab KPI "Participantes inscrites" + POTENTIAL_MAX = count × 6.
+   523→   523→  - Badges tab range upper bound + default "à" value.
+   524→   524→  - Participants list progress denominator "X / N avec nom réel".
+   525→   525→- Integrated ConfigCard at the top of the admin view (above the override bar).
+   526→   526→- Updated `.gitignore` to exclude: /db/, *.db, .env (already ignored),
+   527→   527→  /upload/, verify-*.png, /worklog.md, /agent-ctx/.
+   528→   528→- Removed sensitive files from the git index (kept locally):
+   529→   529→  db/custom.db, .env, worklog.md, agent-ctx/, verify-*.png.
+   530→   530→- Added a README.md (French) describing features, stack, startup, env vars.
+   531→   531→- Committed everything ("Sonafi: role-based scanner/admin, auto pause,
+   532→   532→  configurable participant count") and added the GitHub remote
+   533→   533→  `origin → https://github.com/blunaantoine/sonafi.git`, branch renamed to main.
+   534→   534→
+   535→   535→GIT PUSH STATUS: BLOCKED — could not push automatically.
+   536→   536→- The `git push -u origin main` failed with "could not read Username for
+   537→   537→  'https://github.com'" because GitHub HTTPS requires a Personal Access Token
+   538→   538→  and none is available in this environment (no gh CLI, no credential helper,
+   539→   539→  no GITHUB_TOKEN env var). The commit + remote are ready locally; the user
+   540→   540→  must run the push from a machine where they can authenticate.
+   541→   541→
+   542→   542→Verification:
+   543→   543→- `bun run lint` clean.
+   544→   544→- Agent Browser: entered admin (PIN sonafi2025), changed the count to 300 via
+   545→   545→  the ConfigCard → config card shows "Actuellement : 300 participantes",
+   546→   546→  API confirms {totalParticipants:300, actual:300}, Badges tab range max
+   547→   547→  becomes 300, badge SVGs reflect the new total. Restored to 500.
+   548→   548→- DB clean: 500 participants, 0 pauses.
+   549→   549→
+   550→   550→Stage Summary:
+   551→   551→- The admin can now change the number of participants at any time; the system
+   552→   552→  safely syncs badges (creates missing / removes unused, preserves scans).
+   553→   553→- The full project is committed locally on `main` with remote `origin` set to
+   554→   554→  the user's GitHub repo. The push itself requires the user's GitHub token.
+   555→   555→- To push, the user runs (on a machine with their GitHub credentials):
+   556→   556→    cd /home/z/my-project
+   557→   557→    git push -u origin main
+   558→   558→
