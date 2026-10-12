@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BadgeCard } from "./badge-card";
 import { useSettings } from "@/components/sonafi/use-settings";
+import { useCurrentDay } from "@/components/sonafi/use-current-day";
 import {
   type Participant,
   TOTAL_PARTICIPANTS,
@@ -16,27 +17,35 @@ import {
 /**
  * Print stylesheet scoped to this tab.
  *
- * - Hides the page header, footer and the shadcn TabsList (rendered by the
- *   parent route) so the printed page only contains the badges.
- * - Lays badges out as a 2×4 grid on A4 portrait (≈8 badges per page) with
- *   dashed cut guides around each badge and `break-inside: avoid` so badges
- *   never split across pages.
+ * Badge sheet geometry — A4 portrait, full-bleed, exactly 20 badges/page:
+ *   - 4 columns of 52.5mm (= 210mm / 4); the badge itself is cut at 50mm wide
+ *     (the requested 5cm) and centered in its column → 2.5mm slack per column.
+ *   - 5 rows of 59.4mm (= 297mm / 5). The requested 6cm (60mm) would need
+ *     300mm — 3mm more than A4 — so the cut height is 59.4mm (invisible
+ *     difference) to honor the "20 badges per page" requirement.
+ *   - Dashed borders act as cut guides; `break-inside: avoid` keeps each badge
+ *     whole; every 20 consecutive badges fill exactly one A4 page.
+ * - Hides the app chrome (SubView header, toolbar, tab list) so the printed
+ *   pages contain only badges.
+ * - `print-color-adjust: exact` keeps the emerald branding on paper.
  */
 const PRINT_CSS = `
 @media print {
-  @page { size: A4 portrait; margin: 10mm; }
+  @page { size: A4 portrait; margin: 0; }
   html, body { background: #ffffff !important; }
 
-  /* Hide page chrome rendered by the parent (header, footer, tab list) */
+  /* Hide page chrome rendered by the parents (header, footer, tab list) */
   body > div > header,
   body > div > footer,
   header,
   footer,
-  [role="tablist"] {
+  [role="tablist"],
+  .sonafi-no-print {
     display: none !important;
   }
 
-  /* Reset the layout wrappers so badges start at the top of the page */
+  /* Neutralize the mobile-first wrappers (max-w-md SubView/dashboard roots)
+     so the badge grid can span the full 210mm page width. */
   main,
   [role="tabpanel"] {
     padding: 0 !important;
@@ -44,33 +53,68 @@ const PRINT_CSS = `
     max-width: none !important;
     width: 100% !important;
   }
+  div[class*="max-w-md"] {
+    max-width: none !important;
+    width: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
 
-  /* Hide everything in this component marked as no-print (toolbar, etc.) */
-  .sonafi-no-print { display: none !important; }
-
-  /* 2 columns × 4 rows = 8 badges per A4 page */
+  /* Exact sheet geometry: 4 × 52.5mm columns × 5 × 59.4mm rows = 20/page */
   .sonafi-badges-grid {
     display: grid !important;
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 3mm !important;
+    grid-template-columns: repeat(4, 52.5mm) !important;
+    grid-auto-rows: 59.4mm !important;
+    gap: 0 !important;
+    width: 210mm !important;
     margin: 0 !important;
     padding: 0 !important;
   }
 
   .sonafi-badge {
-    break-inside: avoid;
-    page-break-inside: avoid;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+    width: 50mm !important;
+    height: 59.4mm !important;
+    justify-self: center !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
     box-shadow: none !important;
     /* Dashed border acts as the cut guide */
-    border: 1px dashed #94a3b8 !important;
-    border-radius: 2mm !important;
+    border: 1px dashed #64748b !important;
+    border-radius: 0 !important;
+  }
+  .sonafi-badge * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
+  /* Typography tuned for the 50 × 59.4mm badge */
+  .sonafi-badge-head {
+    padding: 1.4mm 1.5mm 1.1mm !important;
+  }
+  .sonafi-badge-title {
+    font-size: 8.5pt !important;
+    letter-spacing: 0.16em !important;
+  }
+  .sonafi-badge-subtitle {
+    font-size: 5.5pt !important;
+  }
   .sonafi-qr-svg {
-    width: 28mm !important;
-    height: 28mm !important;
+    width: 29mm !important;
+    height: 29mm !important;
+  }
+  .sonafi-badge-id {
+    font-size: 10.5pt !important;
+  }
+  .sonafi-badge-name {
+    font-size: 6.5pt !important;
+    line-height: 1.25 !important;
+    max-width: 46mm !important;
+  }
+  .sonafi-badge-foot {
+    font-size: 6pt !important;
+    padding: 1.1mm !important;
   }
 }
 `;
@@ -93,6 +137,9 @@ export function BadgesTab() {
   // total at runtime). Used as the range upper bound.
   const { totalParticipants: configuredTotal } = useSettings();
   const total = configuredTotal ?? participants?.length ?? TOTAL_PARTICIPANTS;
+
+  // Admin-configured number of event days — printed in each badge footer.
+  const { numberOfDays } = useCurrentDay();
 
   // Raw range values — kept as strings so the user can clear & retype freely.
   // The derived `from`/`to` numbers are clamped for slicing only.
@@ -259,7 +306,7 @@ export function BadgesTab() {
       ) : (
         <div className="sonafi-badges-grid grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
           {visible.map((p) => (
-            <BadgeCard key={p.id} participant={p} />
+            <BadgeCard key={p.id} participant={p} days={numberOfDays} />
           ))}
         </div>
       )}

@@ -10,6 +10,7 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://sonafi.oquitogo.com"),
   title: "Sommet Sonafi — Gestion des pauses",
   description: "Gestion des pauses et entrées du Sommet national de la jeune fille (Sonafi).",
   keywords: ["Sonafi", "Sommet national", "gestion pauses", "badges QR"],

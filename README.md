@@ -46,10 +46,23 @@ L'application démarre sur `http://localhost:3000`.
 
 ## Mise en ligne (VPS)
 
-La caméra nécessite **HTTPS**. Déployez sur un VPS avec un nom de domaine et un
-certificat (Let's Encrypt), puis placez l'application derrière un reverse proxy
-HTTPS (Caddy, Nginx). Vérifiez la connexion sur plusieurs téléphones avant
-l'événement.
+La caméra nécessite **HTTPS**. L'application est déployée sur un VPS derrière
+Caddy avec le domaine **`sonafi.oquitogo.com`** :
+
+1. **DNS** — enregistrement `A` : `sonafi.oquitogo.com` → IP publique du VPS.
+2. **Application** — cloner le repo, puis :
+   ```bash
+   bun install
+   bun run db:push
+   ADMIN_PIN=<pin_solide> RESTAURATION_CODE=<code> VERIFICATION_CODE=<code> \
+     DATABASE_URL=file:/var/lib/sonafi/custom.db bun run start
+   ```
+   (Lancer via un service systemd pour la supervision et le redémarrage auto.)
+3. **Reverse proxy HTTPS** — copier `deploy/Caddyfile.sonafi` dans
+   `/etc/caddy/Caddyfile` puis `sudo systemctl reload caddy`. Caddy obtient et
+   renouvelle automatiquement le certificat Let's Encrypt du domaine.
+4. **Vérification** — ouvrir `https://sonafi.oquitogo.com` sur plusieurs
+   téléphones avant l'événement et tester un scan complet.
 
 ## Sécurité
 

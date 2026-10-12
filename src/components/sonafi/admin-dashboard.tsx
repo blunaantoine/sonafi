@@ -483,7 +483,7 @@ function SubView({
       style={{ fontFamily: "var(--font-jakarta), system-ui, sans-serif" }}
     >
       <div
-        className="sticky top-0 z-20 mb-3 flex items-center gap-3 px-5 py-3"
+        className="sonafi-no-print sticky top-0 z-20 mb-3 flex items-center gap-3 px-5 py-3"
         style={{ background: NAVY, color: "#fff", borderBottomLeftRadius: 24, borderBottomRightRadius: 24 }}
       >
         <button

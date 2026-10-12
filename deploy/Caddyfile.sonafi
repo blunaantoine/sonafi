@@ -1,0 +1,47 @@
+# ---------------------------------------------------------------------------
+# Configuration Caddy de PRODUCTION pour sonafi.oquitogo.com
+# ---------------------------------------------------------------------------
+# À déployer sur le VPS (PAS le Caddyfile du sandbox à la racine du repo).
+#
+# 1. DNS : créer un enregistrement A
+#        sonafi.oquitogo.com  →  IP_PUBLIQUE_DU_VPS
+#
+# 2. Installer Caddy sur le VPS (https://caddyserver.com/docs/install),
+#    copier ce fichier dans /etc/caddy/Caddyfile puis :
+#        sudo systemctl reload caddy
+#
+# 3. Lancer l'application sur le VPS :
+#        bun install
+#        ADMIN_PIN=<pin_solide> RESTAURATION_CODE=<code> VERIFICATION_CODE=<code> \
+#          DATABASE_URL=file:/var/lib/sonafi/custom.db bun run db:push
+#        ADMIN_PIN=<pin_solide> ... bun run start   # (via systemd, voir README)
+#
+# Caddy obtient et renouvelle automatiquement le certificat TLS Let's Encrypt
+# pour le domaine — requis pour la caméra (getUserMedia n'existe qu'en HTTPS).
+# ---------------------------------------------------------------------------
+
+sonafi.oquitogo.com {
+	# Reverse proxy vers l'application Next.js (port 3000, même machine).
+	reverse_proxy localhost:3000 {
+		header_up Host {host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Real-IP {remote_host}
+	}
+
+	# Compression + cache statique léger
+	encode gzip
+
+	# En-têtes de sécurité de base
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		# Autorise la caméra uniquement sur le site lui-même
+		Permissions-Policy "camera=(self), microphone=(), geolocation=()"
+	}
+
+	log {
+		output file /var/log/caddy/sonafi-access.log
+	}
+}
