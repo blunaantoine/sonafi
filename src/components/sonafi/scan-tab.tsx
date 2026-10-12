@@ -89,7 +89,6 @@ interface OverlayTheme {
 const PAUSE_DOT: Record<PauseType, string> = {
   cafe: "bg-amber-500",
   dejeuner: "bg-orange-500",
-  jeux: "bg-fuchsia-500",
 };
 
 // ---------------------------------------------------------------------------
@@ -114,7 +113,7 @@ function readPause(): PauseType {
     const raw = window.localStorage.getItem(LS_PAUSE);
     if (raw == null) return "cafe";
     const v = JSON.parse(raw) as string;
-    if (v === "cafe" || v === "dejeuner" || v === "jeux") return v;
+    if (v === "cafe" || v === "dejeuner") return v;
   } catch {
     /* ignore */
   }

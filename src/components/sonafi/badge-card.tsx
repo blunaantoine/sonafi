@@ -62,7 +62,7 @@ export function BadgeCard({ participant, className }: BadgeCardProps) {
 
       {/* Footer — event summary */}
       <div className="border-t border-emerald-100 bg-emerald-50/60 px-2 py-1 text-center text-[9px] font-medium tracking-wide text-emerald-700 sm:text-[10px]">
-        3 jours · 3 pauses
+        3 jours · 2 pauses
       </div>
     </div>
   );

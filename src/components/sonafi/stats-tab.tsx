@@ -10,7 +10,7 @@
  *   • Passages par jour (3 rows, emerald shades)
  *   • Activité récente (scrollable feed of the latest ~20 scans)
  *
- * All labels are French. Colours come from PAUSE_META (amber / orange / fuchsia)
+ * All labels are French. Colours come from PAUSE_META (amber / orange)
  * plus emerald/teal for the global accents — never indigo or blue.
  */
 
@@ -50,21 +50,19 @@ import {
 
 const REFRESH_MS = 5_000;
 const RECENT_LIMIT = 20;
-/** 3 days × 3 pauses × 500 participantes = the theoretical maximum scans. */
-const POTENTIAL_MAX = TOTAL_PARTICIPANTS * 9;
+/** 3 days × 2 pauses × 500 participantes = the theoretical maximum scans. */
+const POTENTIAL_MAX = TOTAL_PARTICIPANTS * 6;
 
 /** Solid bar colour for each pause type (kept here so PAUSE_META stays generic). */
 const PAUSE_BAR: Record<PauseType, string> = {
   cafe: "bg-amber-500",
   dejeuner: "bg-orange-500",
-  jeux: "bg-fuchsia-500",
 };
 
 /** Solid dot colour for the activity-feed chip. */
 const PAUSE_DOT: Record<PauseType, string> = {
   cafe: "bg-amber-500",
   dejeuner: "bg-orange-500",
-  jeux: "bg-fuchsia-500",
 };
 
 /** Emerald shades for the 3 days (light → dark). */
@@ -502,7 +500,7 @@ export function StatsTab() {
   }
 
   const totalScans = data?.totalScans ?? 0;
-  const byPauseType = data?.byPauseType ?? { cafe: 0, dejeuner: 0, jeux: 0 };
+  const byPauseType = data?.byPauseType ?? { cafe: 0, dejeuner: 0 };
   const byDay = data?.byDay ?? { "1": 0, "2": 0, "3": 0 };
   const recent = data?.recent ?? [];
 

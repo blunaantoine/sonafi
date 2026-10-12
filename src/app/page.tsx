@@ -93,7 +93,7 @@ export default function Home() {
       <footer className="mt-auto border-t border-emerald-100/60 bg-background/85 backdrop-blur">
         <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-1.5 px-4 py-3 text-center text-xs text-muted-foreground sm:flex-row sm:px-6 sm:text-left">
           <p>
-            Sommet national de la jeune fille · Sonafi · 3 jours · 3 pauses
+            Sommet national de la jeune fille · Sonafi · 3 jours · 2 pauses
             par jour
           </p>
           <p className="font-medium text-emerald-700">

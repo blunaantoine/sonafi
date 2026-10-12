@@ -33,7 +33,6 @@ export async function GET(req: NextRequest) {
   const pauseCounts: Record<string, number> = {
     cafe: 0,
     dejeuner: 0,
-    jeux: 0,
   };
   for (const row of byPauseType) pauseCounts[row.pauseType] = row._count._all;
 

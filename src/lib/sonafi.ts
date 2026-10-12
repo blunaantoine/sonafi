@@ -3,10 +3,10 @@
  * Every tab imports from here so the day/pause vocabulary stays consistent.
  */
 
-export type PauseType = "cafe" | "dejeuner" | "jeux";
+export type PauseType = "cafe" | "dejeuner";
 export type DayNumber = 1 | 2 | 3;
 
-export const PAUSE_TYPES: PauseType[] = ["cafe", "dejeuner", "jeux"];
+export const PAUSE_TYPES: PauseType[] = ["cafe", "dejeuner"];
 
 export const DAYS: DayNumber[] = [1, 2, 3];
 
@@ -28,13 +28,6 @@ export const PAUSE_META: Record<
     accent: "text-orange-700",
     ring: "ring-orange-500",
     soft: "bg-orange-100 text-orange-900 border-orange-200",
-  },
-  jeux: {
-    label: "Pause des jeux",
-    emoji: "🎯",
-    accent: "text-fuchsia-700",
-    ring: "ring-fuchsia-500",
-    soft: "bg-fuchsia-100 text-fuchsia-900 border-fuchsia-200",
   },
 };
 

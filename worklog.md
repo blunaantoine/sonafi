@@ -402,3 +402,35 @@ Stage Summary:
 - Sticky header + sticky tab bar + sticky footer.
 - To go live: import the real participant names (Participants tab → CSV), print the
   badges (Badges tab → Imprimer), deploy to an HTTPS VPS (camera requires HTTPS).
+
+---
+Task ID: 8
+Agent: main (orchestrator)
+Task: Remove the "jeux" (games) pause — the summit now tracks only 2 pauses/day
+(café + déjeuner) instead of 3.
+
+Work Log:
+- Removed "jeux" from the shared vocabulary in `src/lib/sonafi.ts`: PauseType
+  union, PAUSE_TYPES array, and PAUSE_META map (also dropped the fuchsia palette).
+- Updated zod enums in `pause/check` and `pause/record` API routes so "jeux" is
+  now a 400 validation error.
+- Removed `jeux: 0` default from the stats API route's pauseCounts map.
+- Removed `jeux: "bg-fuchsia-500"` from the PAUSE_DOT map in scan-tab.tsx and
+  from the PAUSE_BAR + PAUSE_DOT maps in stats-tab.tsx; cleaned the localStorage
+  pause validator in scan-tab.tsx.
+- Updated POTENTIAL_MAX in stats-tab.tsx (3 days × 2 pauses × 500 = 3000, was 4500).
+- Updated copy: badge footer "3 jours · 2 pauses", page footer "2 pauses par jour".
+- Since PauseType is derived from PAUSE_TYPES (iterated in the UI), the Scan tab
+  pause selector and the Stats tab pause bars now render only café + déjeuner.
+
+Verification:
+- `bun run lint` clean.
+- API: POST pause/record with pauseType "jeux" → 400; "cafe" → 200.
+- /api/sonafi/stats byPauseType shape = {cafe, dejeuner} (no jeux key).
+- Browser: Scan tab shows 2 pause buttons (☕ café / 🍽️ déjeuner); Stats tab
+  shows 2 pause bars; footer reads "2 pauses par jour". No runtime errors.
+
+Stage Summary:
+- The system now manages 2 pauses per day (café + déjeuner) across 3 days.
+- 500 participants + 2 pauses/day = 1000 potential scans/day, 3000 total.
+- No DB migration needed (pauseType is a free String column); 0 rows in DB.
