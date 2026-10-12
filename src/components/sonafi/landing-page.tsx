@@ -113,19 +113,19 @@ export function LandingPage({
           borderBottomRightRadius: R.headerBottom,
         }}
       >
-        {/* QR-style logo in a white rounded square */}
+        {/* SONAFI logo in a white rounded square */}
         <div
-          className="flex h-11 w-11 items-center justify-center"
+          className="flex h-12 w-12 items-center justify-center overflow-hidden"
           style={{
             backgroundColor: C.surface,
             borderRadius: 12,
           }}
           aria-hidden
         >
-          <QrCode
-            className="h-6 w-6"
-            style={{ color: C.gestionnaire }}
-            strokeWidth={2.2}
+          <img
+            src="/apple-touch-icon.png"
+            alt=""
+            className="h-full w-full object-cover"
           />
         </div>
 
