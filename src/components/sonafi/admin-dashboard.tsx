@@ -32,15 +32,15 @@ import { C } from "@/lib/design-tokens";
 import { useCurrentDay } from "@/components/sonafi/use-current-day";
 
 // ---- Design tokens (event colours: navy primary) --------------------------
-const PURPLE_BG = C.pageBg;
-const PURPLE_DEEP = C.gestionnaire;
-const PURPLE_TEXT = C.textPrimary;
-const PURPLE_MUTED = C.textSecondary;
-const PURPLE_CARD_BORDER = "#E4DDEE";
-const PURPLE_SEGMENT_BG = C.gestionnaireTint;
-const PURPLE_TRACK = C.track;
-const PURPLE_ICON_TILE = C.gestionnaireTint;
-const PURPLE_DIVIDER = C.divider;
+const NAVY = C.gestionnaire;
+const PAGE_BG = C.pageBg;
+const TEXT_PRIMARY = C.textPrimary;
+const TEXT_MUTED = C.textSecondary;
+const CARD_BORDER = "#E5E7EB";
+const SEGMENT_BG = C.gestionnaireTint;
+const TRACK = C.track;
+const ICON_TILE = C.gestionnaireTint;
+const DIVIDER = C.divider;
 const TEAL = C.entriesBar;
 const ROSE = C.pauseCafe;
 
@@ -235,13 +235,13 @@ export function AdminDashboard({
 
   return (
     <div
-      className="mx-auto flex min-h-screen max-w-md flex-col"
-      style={{ backgroundColor: PURPLE_BG, color: PURPLE_TEXT, fontFamily: "var(--font-jakarta), system-ui, sans-serif" }}
+      className="mx-auto flex h-[100dvh] max-w-md flex-col"
+      style={{ backgroundColor: PAGE_BG, color: TEXT_PRIMARY, fontFamily: "var(--font-jakarta), system-ui, sans-serif" }}
     >
       {/* ---- Navy header ---- */}
       <div
         className="flex flex-col gap-3 px-5 pb-5 pt-safe safe-x text-white"
-        style={{ backgroundColor: PURPLE_DEEP, borderRadius: "0 0 24px 24px" }}
+        style={{ backgroundColor: NAVY, borderRadius: "0 0 24px 24px" }}
       >
         <div className="flex items-center justify-between">
           <button
@@ -287,7 +287,7 @@ export function AdminDashboard({
         {/* Stats card with progress bars */}
         <div
           className="flex flex-col gap-3.5 p-[18px]"
-          style={{ background: "#FFFFFF", border: `1px solid ${PURPLE_CARD_BORDER}`, borderRadius: 22 }}
+          style={{ background: "#FFFFFF", border: `1px solid ${CARD_BORDER}`, borderRadius: 22 }}
         >
           <p className="text-[15px] font-bold">
             Aujourd'hui, jour {day}
@@ -298,21 +298,21 @@ export function AdminDashboard({
             value={detail?.entries ?? 0}
             total={total}
             color={TEAL}
-            track={PURPLE_TRACK}
+            track={TRACK}
           />
           <ProgressBar
             label="Pause café"
             value={detail?.cafe ?? 0}
             total={total}
             color={ROSE}
-            track={PURPLE_TRACK}
+            track={TRACK}
           />
           <ProgressBar
             label="Déjeuner"
             value={detail?.dejeuner ?? 0}
             total={total}
             color={ROSE}
-            track={PURPLE_TRACK}
+            track={TRACK}
           />
         </div>
 
@@ -324,7 +324,7 @@ export function AdminDashboard({
         {/* Navigation list */}
         <div
           className="flex flex-col overflow-hidden"
-          style={{ background: "#FFFFFF", border: `1px solid ${PURPLE_CARD_BORDER}`, borderRadius: 22 }}
+          style={{ background: "#FFFFFF", border: `1px solid ${CARD_BORDER}`, borderRadius: 22 }}
         >
           <NavRow
             icon={<Users className="h-[22px] w-[22px]" />}
@@ -366,12 +366,12 @@ export function AdminDashboard({
         {pause?.source !== "override" && (
           <div
             className="flex items-center gap-2.5 rounded-2xl px-4 py-3"
-            style={{ background: "#FFFFFF", border: `1px solid ${PURPLE_CARD_BORDER}` }}
+            style={{ background: "#FFFFFF", border: `1px solid ${CARD_BORDER}` }}
           >
-            <Clock className="h-4 w-4 shrink-0" style={{ color: PURPLE_MUTED }} />
-            <span className="text-[13px]" style={{ color: PURPLE_MUTED }}>
+            <Clock className="h-4 w-4 shrink-0" style={{ color: TEXT_MUTED }} />
+            <span className="text-[13px]" style={{ color: TEXT_MUTED }}>
               Pause active :{" "}
-              <span className="font-semibold" style={{ color: PURPLE_TEXT }}>
+              <span className="font-semibold" style={{ color: TEXT_PRIMARY }}>
                 {pause?.pauseType === "cafe" ? "café" : pause?.pauseType === "dejeuner" ? "déjeuner" : "—"}
               </span>{" "}
               (automatique)
@@ -403,7 +403,7 @@ function ProgressBar({
   return (
     <div className="flex flex-col gap-[7px]">
       <div className="flex justify-between text-[15px]">
-        <span style={{ color: PURPLE_MUTED, fontWeight: 500 }}>{label}</span>
+        <span style={{ color: TEXT_MUTED, fontWeight: 500 }}>{label}</span>
         <span className="font-bold">
           {value} / {total}
         </span>
@@ -439,27 +439,27 @@ function NavRow({
       type="button"
       onClick={onClick}
       className="flex min-h-16 items-center gap-3.5 px-4 py-2.5 text-left transition-colors hover:bg-[#F8F5FC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset"
-      style={{ color: PURPLE_TEXT }}
+      style={{ color: TEXT_PRIMARY }}
     >
       <span
         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-        style={{ background: PURPLE_ICON_TILE, color: PURPLE_DEEP }}
+        style={{ background: ICON_TILE, color: NAVY }}
       >
         {icon}
       </span>
       <span className="flex flex-1 flex-col gap-0.5">
         <span className="text-base font-semibold">{title}</span>
-        <span className="text-[13px]" style={{ color: PURPLE_MUTED }}>
+        <span className="text-[13px]" style={{ color: TEXT_MUTED }}>
           {subtitle}
         </span>
       </span>
-      <ChevronRight className="h-5 w-5 shrink-0" style={{ color: PURPLE_MUTED }} />
+      <ChevronRight className="h-5 w-5 shrink-0" style={{ color: TEXT_MUTED }} />
     </button>
   );
 }
 
 function Divider() {
-  return <div className="mx-4 h-px" style={{ background: PURPLE_DIVIDER }} />;
+  return <div className="mx-4 h-px" style={{ background: DIVIDER }} />;
 }
 
 // ---- SubView (wrapper for the detail pages) --------------------------------
@@ -480,7 +480,7 @@ function SubView({
     >
       <div
         className="sticky top-0 z-20 mb-3 flex items-center gap-3 px-5 py-3"
-        style={{ background: PURPLE_DEEP, color: "#fff", borderBottomLeftRadius: 24, borderBottomRightRadius: 24 }}
+        style={{ background: NAVY, color: "#fff", borderBottomLeftRadius: 24, borderBottomRightRadius: 24 }}
       >
         <button
           type="button"
@@ -547,7 +547,7 @@ function DayConfigCard({
   return (
     <div
       className="flex flex-col gap-3 p-[18px]"
-      style={{ background: "#FFFFFF", border: `1px solid ${PURPLE_CARD_BORDER}`, borderRadius: 22 }}
+      style={{ background: "#FFFFFF", border: `1px solid ${CARD_BORDER}`, borderRadius: 22 }}
     >
       <div className="flex items-center justify-between">
         <p className="text-[15px] font-bold">
@@ -566,7 +566,7 @@ function DayConfigCard({
 
       {/* Number of days selector */}
       <div className="flex items-center justify-between gap-3">
-        <span className="text-[13px]" style={{ color: PURPLE_MUTED }}>
+        <span className="text-[13px]" style={{ color: TEXT_MUTED }}>
           Nombre de jours
         </span>
         <div className="flex items-center gap-1.5">
@@ -575,7 +575,7 @@ function DayConfigCard({
             disabled={loading || numberOfDays <= 1}
             onClick={() => onSetNumberOfDays(numberOfDays - 1)}
             className="flex h-8 w-8 items-center justify-center rounded-lg text-base font-bold disabled:opacity-40"
-            style={{ background: PURPLE_SEGMENT_BG, color: PURPLE_DEEP }}
+            style={{ background: SEGMENT_BG, color: NAVY }}
             aria-label="Diminuer le nombre de jours"
           >
             −
@@ -586,7 +586,7 @@ function DayConfigCard({
             disabled={loading || numberOfDays >= 10}
             onClick={() => onSetNumberOfDays(numberOfDays + 1)}
             className="flex h-8 w-8 items-center justify-center rounded-lg text-base font-bold disabled:opacity-40"
-            style={{ background: PURPLE_SEGMENT_BG, color: PURPLE_DEEP }}
+            style={{ background: SEGMENT_BG, color: NAVY }}
             aria-label="Augmenter le nombre de jours"
           >
             +
@@ -598,14 +598,14 @@ function DayConfigCard({
       <div className="flex flex-col gap-1.5">
         {dayList.map((d) => (
           <div key={d} className="flex items-center justify-between text-[13px]">
-            <span style={{ color: PURPLE_MUTED }}>Jour {d}</span>
-            <span className="font-medium">
+            <span style={{ color: TEXT_MUTED }}>Jour {d}</span>
+            <span className="font-medium" style={{ color: dates[String(d)] ? TEXT_PRIMARY : TEXT_MUTED }}>
               {dates[String(d)]
                 ? new Date(dates[String(d)] + "T00:00:00").toLocaleDateString("fr-FR", {
                     day: "2-digit",
                     month: "long",
                   })
-                : "—"}
+                : "Non programmée"}
             </span>
           </div>
         ))}
@@ -614,7 +614,7 @@ function DayConfigCard({
       {/* Quick force buttons (the "retard" override) */}
       <div
         className="grid gap-1 p-1"
-        style={{ background: PURPLE_SEGMENT_BG, borderRadius: 12, gridTemplateColumns: `repeat(${Math.min(numberOfDays + 1, 5)}, minmax(0, 1fr))` }}
+        style={{ background: SEGMENT_BG, borderRadius: 12, gridTemplateColumns: `repeat(${Math.min(numberOfDays + 1, 5)}, minmax(0, 1fr))` }}
       >
         {dayList.map((d) => (
           <button
@@ -638,9 +638,9 @@ function DayConfigCard({
           className={cn(
             "h-9 rounded-lg text-[13px] font-semibold transition-colors disabled:opacity-40 bg-transparent",
           )}
-          style={{ color: "#5E5476" }}
+          style={{ color: TEXT_MUTED }}
         >
-          Auto
+          Mode auto
         </button>
       </div>
 
@@ -650,7 +650,7 @@ function DayConfigCard({
           type="button"
           onClick={startEditing}
           className="text-[13px] font-medium underline"
-          style={{ color: PURPLE_DEEP }}
+          style={{ color: NAVY }}
         >
           Programmer les dates des jours
         </button>
@@ -659,7 +659,7 @@ function DayConfigCard({
           <div className="flex flex-col gap-2">
             {dayList.map((d) => (
               <label key={d} className="flex items-center gap-3 text-[13px]">
-                <span className="w-16" style={{ color: PURPLE_MUTED }}>Jour {d}</span>
+                <span className="w-16" style={{ color: TEXT_MUTED }}>Jour {d}</span>
                 <input
                   type="date"
                   value={editDates[String(d)] ?? ""}
@@ -667,7 +667,7 @@ function DayConfigCard({
                     setEditDates((prev) => ({ ...prev, [String(d)]: e.target.value }))
                   }
                   className="flex-1 rounded-lg border px-2 py-1.5 text-[13px]"
-                  style={{ borderColor: PURPLE_CARD_BORDER, color: PURPLE_TEXT }}
+                  style={{ borderColor: CARD_BORDER, color: TEXT_PRIMARY }}
                 />
               </label>
             ))}
@@ -686,7 +686,7 @@ function DayConfigCard({
                 setEditing(false);
               }}
               className="flex-1 rounded-lg py-2 text-[13px] font-semibold text-white disabled:opacity-50"
-              style={{ backgroundColor: PURPLE_DEEP }}
+              style={{ backgroundColor: NAVY }}
             >
               Enregistrer
             </button>
@@ -694,7 +694,7 @@ function DayConfigCard({
               type="button"
               onClick={() => setEditing(false)}
               className="rounded-lg px-4 py-2 text-[13px] font-semibold"
-              style={{ color: PURPLE_MUTED }}
+              style={{ color: TEXT_MUTED }}
             >
               Annuler
             </button>
