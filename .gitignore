@@ -71,3 +71,4 @@ vlm-result.json
 *.json.bak
 audit*.png
 verify*.png
+header-analysis.json
