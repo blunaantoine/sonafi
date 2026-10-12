@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ScanTab } from "@/components/sonafi/scan-tab";
 import { RoleGate } from "@/components/sonafi/role-gate";
 import { AdminDashboard } from "@/components/sonafi/admin-dashboard";
@@ -8,7 +8,7 @@ import { LandingPage } from "@/components/sonafi/landing-page";
 import { VerificationView } from "@/components/sonafi/verification-view";
 import { useEffectivePause } from "@/components/sonafi/use-effective-pause";
 import { useSettings } from "@/components/sonafi/use-settings";
-import { useRole } from "@/components/sonafi/use-role";
+import { LS_KEY, useRole } from "@/components/sonafi/use-role";
 import type { AccessCodeRole } from "@/lib/access-codes";
 
 export default function Home() {
@@ -21,6 +21,30 @@ export default function Home() {
   function requestRole(r: AccessCodeRole) {
     setGateRole(r);
   }
+
+  // ---------------------------------------------------------------------
+  // Discreet gestionnaire access. The "Gestionnaire" card is hidden on the
+  // landing page (see SHOW_GESTIONNAIRE_CARD in landing-page.tsx); opening
+  //   /?gestionnaire   or   /#gestionnaire
+  // opens the admin PIN gate instead. The secret key is wiped from the URL
+  // immediately, and the gate never reopens over an already-active manager
+  // session (role "admin" in localStorage).
+  // ---------------------------------------------------------------------
+  useEffect(() => {
+    const isGestionnaireAccess =
+      new URLSearchParams(window.location.search).has("gestionnaire") ||
+      window.location.hash === "#gestionnaire";
+    if (!isGestionnaireAccess) return;
+
+    window.history.replaceState(null, "", window.location.pathname);
+
+    try {
+      if (window.localStorage.getItem(LS_KEY) === "admin") return;
+    } catch {
+      /* ignore */
+    }
+    setGateRole("admin");
+  }, []);
 
   function onGateSuccess(_code: string) {
     // The code was verified server-side for gateRole — switch to that role.

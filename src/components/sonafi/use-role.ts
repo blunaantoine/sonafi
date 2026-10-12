@@ -3,7 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Role } from "@/lib/sonafi";
 
-const LS_KEY = "sonafi.role";
+/** localStorage key holding the active role (exported for the discreet admin
+ *  access in page.tsx — /?gestionnaire must not reopen the gate over an
+ *  already-active manager session). */
+export const LS_KEY = "sonafi.role";
 
 /** null = landing page (no role chosen yet). */
 type RoleOrHome = Role | "home";

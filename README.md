@@ -41,28 +41,25 @@ L'application démarre sur `http://localhost:3000`.
 | ------------- | ---------------------------------------- | ------------ |
 | `DATABASE_URL`| Chemin de la base SQLite                 | (voir `.env`)|
 | `ADMIN_PIN`   | Code PIN pour l'espace administrateur   | `sonafi2025` |
+| `RESTAURATION_CODE` | Code d'accès équipe restauration  | `resto2025`  |
+| `VERIFICATION_CODE` | Code d'accès équipe vérification  | `verif2025`  |
 
 > ⚠️ Changez `ADMIN_PIN` en production (variable d'environnement).
 
-## Mise en ligne (VPS)
+## Mise en ligne (VPS — port 3004)
 
-La caméra nécessite **HTTPS**. L'application est déployée sur un VPS derrière
-Caddy avec le domaine **`sonafi.oquitogo.com`** :
+Le guide de déploiement complet, commande par commande, se trouve dans
+**[DEPLOY.md](DEPLOY.md)**. Résumé :
 
-1. **DNS** — enregistrement `A` : `sonafi.oquitogo.com` → IP publique du VPS.
-2. **Application** — cloner le repo, puis :
-   ```bash
-   bun install
-   bun run db:push
-   ADMIN_PIN=<pin_solide> RESTAURATION_CODE=<code> VERIFICATION_CODE=<code> \
-     DATABASE_URL=file:/var/lib/sonafi/custom.db bun run start
-   ```
-   (Lancer via un service systemd pour la supervision et le redémarrage auto.)
-3. **Reverse proxy HTTPS** — copier `deploy/Caddyfile.sonafi` dans
-   `/etc/caddy/Caddyfile` puis `sudo systemctl reload caddy`. Caddy obtient et
-   renouvelle automatiquement le certificat Let's Encrypt du domaine.
-4. **Vérification** — ouvrir `https://sonafi.oquitogo.com` sur plusieurs
-   téléphones avant l'événement et tester un scan complet.
+- L'application tourne sur le **port 3004** du VPS (3001-3003 occupés par
+d'autres applications), supervisée par **systemd** (`/etc/systemd/system/sonafi.service`).
+- La caméra du scanner nécessitant **HTTPS**, le domaine **`sonafi.oquitogo.com`**
+pointe vers l'application via Nginx ou Caddy (voir `deploy/Caddyfile.sonafi`,
+proxy `localhost:3004`) avec certificat Let's Encrypt automatique.
+- Accès gestionnaire : le bouton est **masqué** sur la page d'accueil ; accès
+discret via **`https://sonafi.oquitogo.com/?gestionnaire`** (PIN toujours requis).
+- Impression badges : **20 badges par page A4** (5 cm × 6 cm chacun), depuis
+l'espace gestionnaire → Badges QR → Imprimer.
 
 ## Sécurité
 

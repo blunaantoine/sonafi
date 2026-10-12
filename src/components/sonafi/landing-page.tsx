@@ -56,15 +56,29 @@ const ROLE_CARDS: RoleCardDef[] = [
 ];
 
 /**
+ * Bouton « Gestionnaire » masqué (demande du 14/02) : la carte n'apparaît plus
+ * sur la page d'accueil. L'espace gestionnaire reste accessible de façon
+ * discrète via l'URL  https://<domaine>/?gestionnaire  — le code PIN est
+ * toujours demandé (voir page.tsx). Remettre `true` ici pour réafficher la
+ * carte (aucun autre changement nécessaire).
+ */
+const SHOW_GESTIONNAIRE_CARD = false;
+
+const VISIBLE_ROLE_CARDS = SHOW_GESTIONNAIRE_CARD
+  ? ROLE_CARDS
+  : ROLE_CARDS.filter((card) => card.id !== "admin");
+
+/**
  * Landing page — page 1 of the Sonafi mobile mockup.
  *
  * Layout (390×844 reference viewport):
  *   • Header block (~40%) — navy background with 24px rounded bottom corners.
  *     Contains the QR-style logo, the Sonafi title, the subtitle, and the two
  *     translucent pill badges ("3 jours" / "500 participants").
- *   • Body — section title "Choisissez votre espace" + three stacked role
- *     cards. Each card has a 56×56 coloured icon container, a bold title and
- *     a gray subtitle, and a chevron.
+ *   • Body — section title "Choisissez votre espace" + stacked role cards
+ *     (the Gestionnaire card is hidden — see SHOW_GESTIONNAIRE_CARD). Each
+ *     card has a 56×56 coloured icon container, a bold title and a gray
+ *     subtitle, and a chevron.
  *   • Footer — centred gray disclaimer.
  *
  * Every colour comes from the design-token `C` object; layout radii from `R`.
@@ -176,7 +190,7 @@ export function LandingPage({
         </h2>
 
         <div className="mt-4 flex flex-col gap-3">
-          {ROLE_CARDS.map((card) => {
+          {VISIBLE_ROLE_CARDS.map((card) => {
             const Icon = card.Icon;
             const handle = handlers[card.onSelect];
             return (
