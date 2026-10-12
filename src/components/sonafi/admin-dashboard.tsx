@@ -537,10 +537,20 @@ function DayConfigCard({
   const [editDates, setEditDates] = useState<Record<string, string>>({});
   const dayList = makeDays(numberOfDays);
 
-  // Sync local date inputs when the server-side dates change.
+  // Sync local date inputs when the server-side dates change — BUT only when
+  // not actively editing. Otherwise the 4s poll would wipe the user's unsaved
+  // changes mid-typing (the "dates reviennent automatiquement" bug).
   useEffect(() => {
+    if (editing) return;
     setEditDates({ ...dates });
-  }, [dates]);
+  }, [dates, editing]);
+
+  // When entering edit mode, snapshot the current server dates so the user
+  // starts from the latest known state.
+  function startEditing() {
+    setEditDates({ ...dates });
+    setEditing(true);
+  }
 
   return (
     <div
@@ -646,7 +656,7 @@ function DayConfigCard({
       {!editing ? (
         <button
           type="button"
-          onClick={() => setEditing(true)}
+          onClick={startEditing}
           className="text-[13px] font-medium underline"
           style={{ color: PURPLE_DEEP }}
         >

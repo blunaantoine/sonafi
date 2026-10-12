@@ -11,7 +11,6 @@ import { useSettings } from "@/components/sonafi/use-settings";
 import {
   type Participant,
   TOTAL_PARTICIPANTS,
-  formatParticipantId,
 } from "@/lib/sonafi";
 
 /**
@@ -128,13 +127,6 @@ export function BadgesTab() {
     };
   }, []);
 
-  // Map id -> participant for O(1) lookups when slicing the visible range.
-  const byId = useMemo(() => {
-    const m = new Map<string, Participant>();
-    for (const p of participants ?? []) m.set(p.id, p);
-    return m;
-  }, [participants]);
-
   const fromNum = parseInt(fromRaw, 10);
   const toNum = parseInt(toRaw, 10);
   const from = Number.isNaN(fromNum)
@@ -144,19 +136,15 @@ export function BadgesTab() {
     ? total
     : clamp(toNum, 1, total);
 
-  // Build the visible slice client-side. Falls back to "Participant IDxxxx"
-  // when the API hasn't returned a real name for that id yet.
+  // Build the visible slice from the ACTUAL participant list (which has random,
+  // non-sequential ids). The range is now positional (#1..#N), not id-based —
+  // so we never generate placeholder sequential ids like ID0042.
   const visible = useMemo<Participant[]>(() => {
     const lo = Math.min(from, to);
     const hi = Math.max(from, to);
-    const list: Participant[] = [];
-    for (let i = lo; i <= hi; i++) {
-      const id = formatParticipantId(i);
-      const found = byId.get(id);
-      list.push(found ?? { id, name: `Participant ${id}` });
-    }
+    const list = (participants ?? []).slice(lo - 1, hi);
     return list;
-  }, [byId, from, to]);
+  }, [participants, from, to]);
 
   const loading = participants === null && error === null;
 
@@ -224,7 +212,7 @@ export function BadgesTab() {
             </span>
             <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
               <Info className="h-3 w-3 shrink-0" />
-              Le contenu du QR est l&apos;identifiant (ex: ID0042).
+              Le QR contient un code secret unique par participante.
             </span>
           </div>
 
