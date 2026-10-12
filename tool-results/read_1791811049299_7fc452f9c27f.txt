@@ -1,0 +1,377 @@
+     1→▲ Next.js 16.1.3 (Turbopack)
+     2→- Local:         http://localhost:3000
+     3→- Network:       http://21.0.7.188:3000
+     4→- Environments: .env
+     5→
+     6→✓ Starting...
+     7→✓ Ready in 1008ms
+     8→○ Compiling / ...
+     9→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+    10→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Pause`.`id` FROM `main`.`Pause` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+    11→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Entry`.`id` FROM `main`.`Entry` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+    12→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+    13→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`day` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`day` ORDER BY `main`.`Pause`.`day` ASC LIMIT ? OFFSET ?
+    14→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`pauseType` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`pauseType` LIMIT ? OFFSET ?
+    15→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Entry`.`day` FROM `main`.`Entry` WHERE 1=1 GROUP BY `main`.`Entry`.`day` ORDER BY `main`.`Entry`.`day` ASC LIMIT ? OFFSET ?
+    16→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+    17→ GET /api/sonafi/pause/current 200 in 3.1s (compile: 3.0s, render: 104ms)
+    18→ GET /api/sonafi/stats?recent=0 200 in 2.1s (compile: 2.0s, render: 72ms)
+    19→ GET /api/sonafi/pause/current 200 in 3.1s (compile: 3.1s, render: 66ms)
+    20→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+    21→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+    22→ GET /api/sonafi/settings 200 in 360ms (compile: 342ms, render: 19ms)
+    23→ GET / 200 in 3.5s (compile: 3.3s, render: 258ms)
+    24→ GET /api/sonafi/pause/current 200 in 11ms (compile: 3ms, render: 7ms)
+    25→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+    26→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Pause`.`id` FROM `main`.`Pause` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+    27→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Entry`.`id` FROM `main`.`Entry` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+    28→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+    29→ GET /api/sonafi/stats?recent=0 200 in 10ms (compile: 3ms, render: 7ms)
+    30→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`day` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`day` ORDER BY `main`.`Pause`.`day` ASC LIMIT ? OFFSET ?
+    31→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`pauseType` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`pauseType` LIMIT ? OFFSET ?
+    32→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Entry`.`day` FROM `main`.`Entry` WHERE 1=1 GROUP BY `main`.`Entry`.`day` ORDER BY `main`.`Entry`.`day` ASC LIMIT ? OFFSET ?
+    33→ GET /api/sonafi/pause/current 200 in 11ms (compile: 6ms, render: 6ms)
+    34→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+    35→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+    36→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+    37→ GET /api/sonafi/settings 200 in 8ms (compile: 2ms, render: 6ms)
+    38→⚠ Cross origin request detected from preview-chat-16b00efb-4d05-4bb9-8196-5036d51f711c.space-z.ai to /_next/* resource. In a future major version of Next.js, you will need to explicitly configure "allowedDevOrigins" in next.config to allow this.
+    39→Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+    40→prisma:query SELECT `main`.`Participant`.`id`, `main`.`Participant`.`name` FROM `main`.`Participant` WHERE (`main`.`Participant`.`id` = ? AND 1=1) LIMIT ? OFFSET ?
+    41→prisma:query INSERT INTO `main`.`Pause` (`participantId`, `day`, `pauseType`, `timestamp`) VALUES (?,?,?,?) RETURNING `id` AS `id`, `participantId` AS `participantId`, `day` AS `day`, `pauseType` AS `pauseType`, `timestamp` AS `timestamp`
+    42→ POST /api/sonafi/pause/record 200 in 49ms (compile: 40ms, render: 9ms)
+    43→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Pause`.`id` FROM `main`.`Pause` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+    44→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Entry`.`id` FROM `main`.`Entry` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+    45→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`pauseType` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`pauseType` LIMIT ? OFFSET ?
+    46→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Entry`.`day` FROM `main`.`Entry` WHERE 1=1 GROUP BY `main`.`Entry`.`day` ORDER BY `main`.`Entry`.`day` ASC LIMIT ? OFFSET ?
+    47→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`day` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`day` ORDER BY `main`.`Pause`.`day` ASC LIMIT ? OFFSET ?
+    48→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+    49→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Pause`.`id` FROM `main`.`Pause` WHERE (`main`.`Pause`.`day` = ? AND `main`.`Pause`.`pauseType` = ?) LIMIT ? OFFSET ?) AS `sub`
+    50→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Pause`.`id` FROM `main`.`Pause` WHERE (`main`.`Pause`.`day` = ? AND `main`.`Pause`.`pauseType` = ?) LIMIT ? OFFSET ?) AS `sub`
+    51→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Pause`.`id` FROM `main`.`Pause` WHERE (`main`.`Pause`.`day` = ? AND `main`.`Pause`.`pauseType` = ?) LIMIT ? OFFSET ?) AS `sub`
+    52→ GET /api/sonafi/stats?day=1&recent=0 200 in 10ms (compile: 1672µs, render: 8ms)
+    53→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Entry`.`id` FROM `main`.`Entry` WHERE `main`.`Entry`.`day` = ? LIMIT ? OFFSET ?) AS `sub`
+    54→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+    55→ GET /api/sonafi/pause/current 200 in 7ms (compile: 2ms, render: 5ms)
+    56→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Pause`.`id` FROM `main`.`Pause` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+    57→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Entry`.`id` FROM `main`.`Entry` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+    58→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+    59→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Entry`.`day` FROM `main`.`Entry` WHERE 1=1 GROUP BY `main`.`Entry`.`day` ORDER BY `main`.`Entry`.`day` ASC LIMIT ? OFFSET ?
+    60→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`pauseType` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`pauseType` LIMIT ? OFFSET ?
+    61→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`day` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`day` ORDER BY `main`.`Pause`.`day` ASC LIMIT ? OFFSET ?
+    62→ GET /api/sonafi/stats?recent=0 200 in 7ms (compile: 1490µs, render: 5ms)
+    63→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+    64→ GET /api/sonafi/pause/current 200 in 5ms (compile: 1592µs, render: 3ms)
+    65→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+    66→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+    67→ GET /api/sonafi/settings 200 in 9ms (compile: 2ms, render: 7ms)
+    68→ GET / 200 in 45ms (compile: 4ms, render: 41ms)
+    69→ GET /api/sonafi/pause/current 200 in 7ms (compile: 2ms, render: 5ms)
+    70→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+    71→ GET /api/sonafi/pause/current 200 in 7ms (compile: 3ms, render: 4ms)
+    72→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+    73→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+    74→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+    75→ GET /api/sonafi/settings 200 in 6ms (compile: 1627µs, render: 5ms)
+    76→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Pause`.`id` FROM `main`.`Pause` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+    77→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Entry`.`id` FROM `main`.`Entry` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+    78→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+    79→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`day` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`day` ORDER BY `main`.`Pause`.`day` ASC LIMIT ? OFFSET ?
+    80→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`pauseType` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`pauseType` LIMIT ? OFFSET ?
+    81→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Entry`.`day` FROM `main`.`Entry` WHERE 1=1 GROUP BY `main`.`Entry`.`day` ORDER BY `main`.`Entry`.`day` ASC LIMIT ? OFFSET ?
+    82→ GET /api/sonafi/stats?recent=0 200 in 9ms (compile: 2ms, render: 6ms)
+    83→ GET /api/sonafi/pause/current 200 in 8ms (compile: 2ms, render: 6ms)
+    84→prisma:query SELECT 1
+    85→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+    86→ GET /api/sonafi/pause/current 200 in 5ms (compile: 1663µs, render: 3ms)
+    87→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+    88→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Entry`.`id` FROM `main`.`Entry` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+    89→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`pauseType` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`pauseType` LIMIT ? OFFSET ?
+    90→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+    91→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`day` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`day` ORDER BY `main`.`Pause`.`day` ASC LIMIT ? OFFSET ?
+    92→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Entry`.`day` FROM `main`.`Entry` WHERE 1=1 GROUP BY `main`.`Entry`.`day` ORDER BY `main`.`Entry`.`day` ASC LIMIT ? OFFSET ?
+    93→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Pause`.`id` FROM `main`.`Pause` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+    94→ GET /api/sonafi/stats?recent=0 200 in 7ms (compile: 2ms, render: 5ms)
+    95→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+    96→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+    97→ GET /api/sonafi/settings 200 in 8ms (compile: 2ms, render: 5ms)
+    98→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Pause`.`id` FROM `main`.`Pause` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+    99→prisma:query SELECT 1
+   100→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Entry`.`id` FROM `main`.`Entry` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   101→ GET /api/sonafi/stats?recent=0 200 in 13ms (compile: 2ms, render: 10ms)
+   102→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   103→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Entry`.`day` FROM `main`.`Entry` WHERE 1=1 GROUP BY `main`.`Entry`.`day` ORDER BY `main`.`Entry`.`day` ASC LIMIT ? OFFSET ?
+   104→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`day` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`day` ORDER BY `main`.`Pause`.`day` ASC LIMIT ? OFFSET ?
+   105→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`pauseType` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`pauseType` LIMIT ? OFFSET ?
+   106→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   107→ GET /api/sonafi/pause/current 200 in 14ms (compile: 8ms, render: 5ms)
+   108→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   109→ GET /api/sonafi/pause/current 200 in 5ms (compile: 1404µs, render: 3ms)
+   110→ GET /api/sonafi/pause/current 200 in 6ms (compile: 1783µs, render: 4ms)
+   111→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   112→ GET /api/sonafi/pause/current 200 in 5ms (compile: 1346µs, render: 3ms)
+   113→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   114→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Pause`.`id` FROM `main`.`Pause` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   115→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`pauseType` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`pauseType` LIMIT ? OFFSET ?
+   116→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Entry`.`id` FROM `main`.`Entry` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   117→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   118→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Entry`.`day` FROM `main`.`Entry` WHERE 1=1 GROUP BY `main`.`Entry`.`day` ORDER BY `main`.`Entry`.`day` ASC LIMIT ? OFFSET ?
+   119→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`day` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`day` ORDER BY `main`.`Pause`.`day` ASC LIMIT ? OFFSET ?
+   120→ GET /api/sonafi/stats?recent=0 200 in 6ms (compile: 1330µs, render: 5ms)
+   121→✓ Compiled in 669ms
+   122→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   123→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   124→ GET /api/sonafi/settings 200 in 11ms (compile: 4ms, render: 7ms)
+   125→ GET /api/sonafi/pause/current 200 in 9ms (compile: 5ms, render: 4ms)
+   126→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   127→ GET /api/sonafi/pause/current 200 in 5ms (compile: 1571µs, render: 3ms)
+   128→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   129→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Pause`.`id` FROM `main`.`Pause` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   130→prisma:query SELECT 1
+   131→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Entry`.`id` FROM `main`.`Entry` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   132→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`pauseType` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`pauseType` LIMIT ? OFFSET ?
+   133→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   134→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`day` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`day` ORDER BY `main`.`Pause`.`day` ASC LIMIT ? OFFSET ?
+   135→ GET /api/sonafi/stats?recent=0 200 in 6ms (compile: 1814µs, render: 4ms)
+   136→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Entry`.`day` FROM `main`.`Entry` WHERE 1=1 GROUP BY `main`.`Entry`.`day` ORDER BY `main`.`Entry`.`day` ASC LIMIT ? OFFSET ?
+   137→ GET /api/sonafi/pause/current 200 in 8ms (compile: 2ms, render: 6ms)
+   138→prisma:query SELECT 1
+   139→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   140→ GET /api/sonafi/pause/current 200 in 10ms (compile: 3ms, render: 7ms)
+   141→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   142→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   143→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Pause`.`id` FROM `main`.`Pause` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   144→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Entry`.`id` FROM `main`.`Entry` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   145→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`day` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`day` ORDER BY `main`.`Pause`.`day` ASC LIMIT ? OFFSET ?
+   146→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   147→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`pauseType` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`pauseType` LIMIT ? OFFSET ?
+   148→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Entry`.`day` FROM `main`.`Entry` WHERE 1=1 GROUP BY `main`.`Entry`.`day` ORDER BY `main`.`Entry`.`day` ASC LIMIT ? OFFSET ?
+   149→ GET /api/sonafi/stats?recent=0 200 in 11ms (compile: 6ms, render: 5ms)
+   150→ GET /api/sonafi/settings 200 in 16ms (compile: 6ms, render: 11ms)
+   151→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   152→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Pause`.`id` FROM `main`.`Pause` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   153→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`day` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`day` ORDER BY `main`.`Pause`.`day` ASC LIMIT ? OFFSET ?
+   154→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`pauseType` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`pauseType` LIMIT ? OFFSET ?
+   155→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Entry`.`day` FROM `main`.`Entry` WHERE 1=1 GROUP BY `main`.`Entry`.`day` ORDER BY `main`.`Entry`.`day` ASC LIMIT ? OFFSET ?
+   156→ GET /api/sonafi/stats?recent=0 200 in 9ms (compile: 3ms, render: 6ms)
+   157→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Entry`.`id` FROM `main`.`Entry` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   158→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   159→ GET /api/sonafi/pause/current 200 in 6ms (compile: 1493µs, render: 4ms)
+   160→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   161→ GET /api/sonafi/pause/current 200 in 6ms (compile: 1641µs, render: 5ms)
+   162→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   163→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   164→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   165→ GET /api/sonafi/settings 200 in 9ms (compile: 3ms, render: 6ms)
+   166→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Pause`.`id` FROM `main`.`Pause` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   167→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Entry`.`id` FROM `main`.`Entry` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   168→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   169→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`day` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`day` ORDER BY `main`.`Pause`.`day` ASC LIMIT ? OFFSET ?
+   170→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`pauseType` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`pauseType` LIMIT ? OFFSET ?
+   171→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Entry`.`day` FROM `main`.`Entry` WHERE 1=1 GROUP BY `main`.`Entry`.`day` ORDER BY `main`.`Entry`.`day` ASC LIMIT ? OFFSET ?
+   172→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   173→ GET /api/sonafi/stats?recent=0 200 in 16ms (compile: 2ms, render: 14ms)
+   174→ GET /api/sonafi/pause/current 200 in 17ms (compile: 10ms, render: 7ms)
+   175→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   176→ GET /api/sonafi/pause/current 200 in 5ms (compile: 2ms, render: 3ms)
+   177→ GET /api/sonafi/pause/current 200 in 7ms (compile: 1967µs, render: 5ms)
+   178→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   179→ GET /api/sonafi/pause/current 200 in 5ms (compile: 1374µs, render: 3ms)
+   180→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   181→prisma:query SELECT 1
+   182→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Pause`.`id` FROM `main`.`Pause` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   183→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Entry`.`id` FROM `main`.`Entry` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   184→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   185→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`pauseType` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`pauseType` LIMIT ? OFFSET ?
+   186→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`day` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`day` ORDER BY `main`.`Pause`.`day` ASC LIMIT ? OFFSET ?
+   187→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Entry`.`day` FROM `main`.`Entry` WHERE 1=1 GROUP BY `main`.`Entry`.`day` ORDER BY `main`.`Entry`.`day` ASC LIMIT ? OFFSET ?
+   188→ GET /api/sonafi/stats?recent=0 200 in 24ms (compile: 19ms, render: 5ms)
+   189→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   190→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   191→ GET /api/sonafi/settings 200 in 7ms (compile: 2ms, render: 5ms)
+   192→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Pause`.`id` FROM `main`.`Pause` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   193→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`pauseType` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`pauseType` LIMIT ? OFFSET ?
+   194→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Entry`.`id` FROM `main`.`Entry` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   195→ GET /api/sonafi/stats?recent=0 200 in 8ms (compile: 2ms, render: 6ms)
+   196→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   197→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Entry`.`day` FROM `main`.`Entry` WHERE 1=1 GROUP BY `main`.`Entry`.`day` ORDER BY `main`.`Entry`.`day` ASC LIMIT ? OFFSET ?
+   198→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`day` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`day` ORDER BY `main`.`Pause`.`day` ASC LIMIT ? OFFSET ?
+   199→ GET /api/sonafi/pause/current 200 in 6ms (compile: 3ms, render: 3ms)
+   200→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   201→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   202→ GET /api/sonafi/pause/current 200 in 5ms (compile: 2ms, render: 3ms)
+   203→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   204→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   205→ GET /api/sonafi/settings 200 in 9ms (compile: 3ms, render: 7ms)
+   206→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Pause`.`id` FROM `main`.`Pause` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   207→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`day` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`day` ORDER BY `main`.`Pause`.`day` ASC LIMIT ? OFFSET ?
+   208→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Entry`.`id` FROM `main`.`Entry` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   209→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`pauseType` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`pauseType` LIMIT ? OFFSET ?
+   210→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   211→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Entry`.`day` FROM `main`.`Entry` WHERE 1=1 GROUP BY `main`.`Entry`.`day` ORDER BY `main`.`Entry`.`day` ASC LIMIT ? OFFSET ?
+   212→ GET /api/sonafi/stats?recent=0 200 in 9ms (compile: 3ms, render: 7ms)
+   213→ GET /api/sonafi/pause/current 200 in 6ms (compile: 1845µs, render: 4ms)
+   214→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   215→ GET /api/sonafi/pause/current 200 in 7ms (compile: 3ms, render: 4ms)
+   216→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   217→ GET /api/sonafi/pause/current 200 in 6ms (compile: 2ms, render: 4ms)
+   218→prisma:query SELECT 1
+   219→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   220→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Pause`.`id` FROM `main`.`Pause` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   221→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`day` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`day` ORDER BY `main`.`Pause`.`day` ASC LIMIT ? OFFSET ?
+   222→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Entry`.`id` FROM `main`.`Entry` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   223→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`pauseType` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`pauseType` LIMIT ? OFFSET ?
+   224→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   225→ GET /api/sonafi/stats?recent=0 200 in 9ms (compile: 1771µs, render: 8ms)
+   226→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Entry`.`day` FROM `main`.`Entry` WHERE 1=1 GROUP BY `main`.`Entry`.`day` ORDER BY `main`.`Entry`.`day` ASC LIMIT ? OFFSET ?
+   227→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   228→ GET /api/sonafi/pause/current 200 in 11ms (compile: 6ms, render: 5ms)
+   229→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   230→ GET /api/sonafi/settings 200 in 9ms (compile: 2ms, render: 7ms)
+   231→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   232→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Pause`.`id` FROM `main`.`Pause` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   233→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`pauseType` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`pauseType` LIMIT ? OFFSET ?
+   234→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Entry`.`day` FROM `main`.`Entry` WHERE 1=1 GROUP BY `main`.`Entry`.`day` ORDER BY `main`.`Entry`.`day` ASC LIMIT ? OFFSET ?
+   235→ GET /api/sonafi/stats?recent=0 200 in 8ms (compile: 2ms, render: 6ms)
+   236→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   237→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`day` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`day` ORDER BY `main`.`Pause`.`day` ASC LIMIT ? OFFSET ?
+   238→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Entry`.`id` FROM `main`.`Entry` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   239→ GET /api/sonafi/pause/current 200 in 5ms (compile: 1297µs, render: 4ms)
+   240→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   241→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   242→ GET /api/sonafi/pause/current 200 in 4ms (compile: 1358µs, render: 3ms)
+   243→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   244→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   245→ GET /api/sonafi/pause/current 200 in 10ms (compile: 3ms, render: 7ms)
+   246→ GET /api/sonafi/settings 200 in 11ms (compile: 5ms, render: 5ms)
+   247→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   248→ GET /api/sonafi/pause/current 200 in 6ms (compile: 1532µs, render: 5ms)
+   249→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   250→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Pause`.`id` FROM `main`.`Pause` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   251→prisma:query SELECT 1
+   252→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   253→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`day` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`day` ORDER BY `main`.`Pause`.`day` ASC LIMIT ? OFFSET ?
+   254→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Entry`.`day` FROM `main`.`Entry` WHERE 1=1 GROUP BY `main`.`Entry`.`day` ORDER BY `main`.`Entry`.`day` ASC LIMIT ? OFFSET ?
+   255→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`pauseType` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`pauseType` LIMIT ? OFFSET ?
+   256→ GET /api/sonafi/stats?recent=0 200 in 9ms (compile: 1894µs, render: 7ms)
+   257→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Entry`.`id` FROM `main`.`Entry` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   258→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   259→ GET /api/sonafi/pause/current 200 in 6ms (compile: 1925µs, render: 4ms)
+   260→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Pause`.`id` FROM `main`.`Pause` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   261→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`day` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`day` ORDER BY `main`.`Pause`.`day` ASC LIMIT ? OFFSET ?
+   262→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Entry`.`id` FROM `main`.`Entry` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   263→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`pauseType` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`pauseType` LIMIT ? OFFSET ?
+   264→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   265→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Entry`.`day` FROM `main`.`Entry` WHERE 1=1 GROUP BY `main`.`Entry`.`day` ORDER BY `main`.`Entry`.`day` ASC LIMIT ? OFFSET ?
+   266→ GET /api/sonafi/stats?recent=0 200 in 10ms (compile: 1827µs, render: 9ms)
+   267→ GET /api/sonafi/pause/current 200 in 11ms (compile: 7ms, render: 5ms)
+   268→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   269→prisma:query SELECT 1
+   270→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   271→ GET /api/sonafi/settings 200 in 8ms (compile: 2ms, render: 5ms)
+   272→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   273→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   274→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Pause`.`id` FROM `main`.`Pause` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   275→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Entry`.`id` FROM `main`.`Entry` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   276→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`day` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`day` ORDER BY `main`.`Pause`.`day` ASC LIMIT ? OFFSET ?
+   277→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   278→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`pauseType` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`pauseType` LIMIT ? OFFSET ?
+   279→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Entry`.`day` FROM `main`.`Entry` WHERE 1=1 GROUP BY `main`.`Entry`.`day` ORDER BY `main`.`Entry`.`day` ASC LIMIT ? OFFSET ?
+   280→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   281→ GET /api/sonafi/pause/current 200 in 15ms (compile: 3ms, render: 13ms)
+   282→ GET /api/sonafi/stats?recent=0 200 in 17ms (compile: 5ms, render: 11ms)
+   283→ GET /api/sonafi/pause/current 200 in 18ms (compile: 10ms, render: 8ms)
+   284→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Pause`.`id` FROM `main`.`Pause` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   285→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Entry`.`id` FROM `main`.`Entry` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   286→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`pauseType` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`pauseType` LIMIT ? OFFSET ?
+   287→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   288→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`day` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`day` ORDER BY `main`.`Pause`.`day` ASC LIMIT ? OFFSET ?
+   289→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Entry`.`day` FROM `main`.`Entry` WHERE 1=1 GROUP BY `main`.`Entry`.`day` ORDER BY `main`.`Entry`.`day` ASC LIMIT ? OFFSET ?
+   290→ GET /api/sonafi/stats?recent=0 200 in 10ms (compile: 2ms, render: 7ms)
+   291→ GET /api/sonafi/pause/current 200 in 5ms (compile: 1372µs, render: 4ms)
+   292→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   293→ GET /api/sonafi/pause/current 200 in 7ms (compile: 4ms, render: 3ms)
+   294→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   295→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   296→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   297→ GET /api/sonafi/settings 200 in 9ms (compile: 2ms, render: 7ms)
+   298→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   299→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Pause`.`id` FROM `main`.`Pause` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   300→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Entry`.`id` FROM `main`.`Entry` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   301→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   302→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`day` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`day` ORDER BY `main`.`Pause`.`day` ASC LIMIT ? OFFSET ?
+   303→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Entry`.`day` FROM `main`.`Entry` WHERE 1=1 GROUP BY `main`.`Entry`.`day` ORDER BY `main`.`Entry`.`day` ASC LIMIT ? OFFSET ?
+   304→ GET /api/sonafi/pause/current 200 in 12ms (compile: 3ms, render: 9ms)
+   305→ GET /api/sonafi/stats?recent=0 200 in 13ms (compile: 6ms, render: 7ms)
+   306→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`pauseType` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`pauseType` LIMIT ? OFFSET ?
+   307→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   308→ GET /api/sonafi/pause/current 200 in 5ms (compile: 1306µs, render: 3ms)
+   309→prisma:query SELECT 1
+   310→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   311→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   312→ GET /api/sonafi/settings 200 in 9ms (compile: 2ms, render: 7ms)
+   313→ GET /api/sonafi/pause/current 200 in 8ms (compile: 2ms, render: 6ms)
+   314→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   315→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   316→ GET /api/sonafi/pause/current 200 in 5ms (compile: 1245µs, render: 4ms)
+   317→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Pause`.`id` FROM `main`.`Pause` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   318→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Entry`.`id` FROM `main`.`Entry` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   319→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   320→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`pauseType` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`pauseType` LIMIT ? OFFSET ?
+   321→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`day` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`day` ORDER BY `main`.`Pause`.`day` ASC LIMIT ? OFFSET ?
+   322→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Entry`.`day` FROM `main`.`Entry` WHERE 1=1 GROUP BY `main`.`Entry`.`day` ORDER BY `main`.`Entry`.`day` ASC LIMIT ? OFFSET ?
+   323→ GET /api/sonafi/stats?recent=0 200 in 6ms (compile: 1218µs, render: 4ms)
+   324→ GET /api/sonafi/pause/current 200 in 6ms (compile: 2ms, render: 4ms)
+   325→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   326→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   327→ GET /api/sonafi/pause/current 200 in 5ms (compile: 1383µs, render: 4ms)
+   328→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Pause`.`id` FROM `main`.`Pause` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   329→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`day` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`day` ORDER BY `main`.`Pause`.`day` ASC LIMIT ? OFFSET ?
+   330→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   331→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`pauseType` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`pauseType` LIMIT ? OFFSET ?
+   332→prisma:query SELECT 1
+   333→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Entry`.`id` FROM `main`.`Entry` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   334→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Entry`.`day` FROM `main`.`Entry` WHERE 1=1 GROUP BY `main`.`Entry`.`day` ORDER BY `main`.`Entry`.`day` ASC LIMIT ? OFFSET ?
+   335→ GET /api/sonafi/stats?recent=0 200 in 7ms (compile: 1229µs, render: 6ms)
+   336→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   337→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   338→ GET /api/sonafi/settings 200 in 7ms (compile: 2ms, render: 5ms)
+   339→✓ Compiled in 194ms
+   340→ GET /api/sonafi/pause/current 200 in 10ms (compile: 3ms, render: 7ms)
+   341→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   342→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Pause`.`id` FROM `main`.`Pause` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   343→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`day` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`day` ORDER BY `main`.`Pause`.`day` ASC LIMIT ? OFFSET ?
+   344→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Entry`.`id` FROM `main`.`Entry` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   345→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`pauseType` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`pauseType` LIMIT ? OFFSET ?
+   346→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   347→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Entry`.`day` FROM `main`.`Entry` WHERE 1=1 GROUP BY `main`.`Entry`.`day` ORDER BY `main`.`Entry`.`day` ASC LIMIT ? OFFSET ?
+   348→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   349→ GET /api/sonafi/stats?recent=0 200 in 13ms (compile: 4ms, render: 10ms)
+   350→ GET /api/sonafi/pause/current 200 in 14ms (compile: 8ms, render: 7ms)
+   351→prisma:query SELECT 1
+   352→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   353→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   354→ GET /api/sonafi/pause/current 200 in 14ms (compile: 7ms, render: 7ms)
+   355→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   356→ GET /api/sonafi/settings 200 in 18ms (compile: 4ms, render: 13ms)
+   357→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Pause`.`id` FROM `main`.`Pause` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   358→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Entry`.`id` FROM `main`.`Entry` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   359→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   360→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Entry`.`day` FROM `main`.`Entry` WHERE 1=1 GROUP BY `main`.`Entry`.`day` ORDER BY `main`.`Entry`.`day` ASC LIMIT ? OFFSET ?
+   361→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`day` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`day` ORDER BY `main`.`Pause`.`day` ASC LIMIT ? OFFSET ?
+   362→ GET /api/sonafi/stats?recent=0 200 in 9ms (compile: 3ms, render: 6ms)
+   363→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`pauseType` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`pauseType` LIMIT ? OFFSET ?
+   364→ GET /api/sonafi/pause/current 200 in 8ms (compile: 3ms, render: 5ms)
+   365→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   366→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   367→ GET /api/sonafi/pause/current 200 in 7ms (compile: 2ms, render: 5ms)
+   368→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Pause`.`id` FROM `main`.`Pause` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   369→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`day` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`day` ORDER BY `main`.`Pause`.`day` ASC LIMIT ? OFFSET ?
+   370→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Entry`.`id` FROM `main`.`Entry` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   371→ GET /api/sonafi/stats?recent=0 200 in 8ms (compile: 1536µs, render: 6ms)
+   372→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Entry`.`day` FROM `main`.`Entry` WHERE 1=1 GROUP BY `main`.`Entry`.`day` ORDER BY `main`.`Entry`.`day` ASC LIMIT ? OFFSET ?
+   373→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Participant`.`id` FROM `main`.`Participant` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   374→prisma:query SELECT COUNT(*) AS `_count$_all`, `main`.`Pause`.`pauseType` FROM `main`.`Pause` WHERE 1=1 GROUP BY `main`.`Pause`.`pauseType` LIMIT ? OFFSET ?
+   375→ GET /api/sonafi/pause/current 200 in 5ms (compile: 1324µs, render: 4ms)
+   376→prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value`, `main`.`Setting`.`updatedAt` FROM `main`.`Setting` WHERE (`main`.`Setting`.`key` = ? AND 1=1) LIMIT ? OFFSET ?
+   377→

@@ -28,7 +28,7 @@ model Pause {
   participantId String
   /// Summit day, 1, 2 or 3.
   day          Int
-  /// Pause type: "cafe" or "dejeuner".
+  /// Pause type: "cafe", "dejeuner" or "jeux".
   pauseType    String
   timestamp    DateTime   @default(now())
 

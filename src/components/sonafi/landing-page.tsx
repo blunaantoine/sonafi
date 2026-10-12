@@ -1,13 +1,15 @@
 "use client";
 
 import { motion } from "framer-motion";
+import type { LucideIcon } from "lucide-react";
 import {
-  CalendarDays,
+  ChevronRight,
   ClipboardCheck,
-  Globe,
-  ShieldCheck,
+  LayoutDashboard,
+  QrCode,
   Utensils,
 } from "lucide-react";
+import { C, R } from "@/lib/design-tokens";
 
 export interface LandingPageProps {
   onSelectScanner: () => void;
@@ -15,57 +17,58 @@ export interface LandingPageProps {
   onSelectAdmin: () => void;
 }
 
-// ---- SONAFI brand palette --------------------------------------------------
-const NAVY = "#1E3A6E";
-const ORANGE = "#F7941D";
-const CREAM = "#FFF8E7";
-const EMERALD = "#10b981";
-
+// ---- Role-card model -------------------------------------------------------
 interface RoleCardDef {
-  id: "scanner" | "verification" | "admin";
+  id: "admin" | "scanner" | "verification";
   title: string;
   subtitle: string;
-  Icon: typeof Utensils;
-  accent: string;
+  Icon: LucideIcon;
+  /** Background colour of the 56×56 icon container (role colour). */
+  iconBg: string;
   onSelect: keyof LandingPageProps;
 }
 
 const ROLE_CARDS: RoleCardDef[] = [
   {
+    id: "admin",
+    title: "Gestionnaire",
+    subtitle: "Suivi, participants et badges",
+    Icon: LayoutDashboard,
+    iconBg: C.gestionnaire,
+    onSelect: "onSelectAdmin",
+  },
+  {
     id: "scanner",
     title: "Équipe restauration",
-    subtitle: "Scanner les pauses",
+    subtitle: "Scanner les pauses café, déjeuner et jeux",
     Icon: Utensils,
-    accent: ORANGE,
+    iconBg: C.restauration,
     onSelect: "onSelectScanner",
   },
   {
     id: "verification",
     title: "Équipe vérification",
-    subtitle: "Enregistrer les entrées",
+    subtitle: "Enregistrer les entrées de chaque jour",
     Icon: ClipboardCheck,
-    accent: EMERALD,
+    iconBg: C.verification,
     onSelect: "onSelectVerification",
-  },
-  {
-    id: "admin",
-    title: "Administrateur",
-    subtitle: "Gestion de l'événement",
-    Icon: ShieldCheck,
-    accent: NAVY,
-    onSelect: "onSelectAdmin",
   },
 ];
 
 /**
- * Landing page for the Sommet Sonafi app.
+ * Landing page — page 1 of the Sonafi mobile mockup.
  *
- * The first screen every user sees. Three big role buttons route the user into
- * the right experience: scanner (restauration team), verification (verification
- * team), or admin (PIN-gated gestionnaire).
+ * Layout (390×844 reference viewport):
+ *   • Header block (~40%) — navy background with 24px rounded bottom corners.
+ *     Contains the QR-style logo, the Sonafi title, the subtitle, and the two
+ *     translucent pill badges ("3 jours" / "500 participants").
+ *   • Body — section title "Choisissez votre espace" + three stacked role
+ *     cards. Each card has a 56×56 coloured icon container, a bold title and
+ *     a gray subtitle, and a chevron.
+ *   • Footer — centred gray disclaimer.
  *
- * Brand: cream background, navy headlines, orange accent, emerald reserved for
- * the verification team so the two "scan" teams stay visually distinct.
+ * Every colour comes from the design-token `C` object; layout radii from `R`.
+ * Mobile-first, capped at max-w-md and centred horizontally.
  */
 export function LandingPage({
   onSelectScanner,
@@ -78,175 +81,185 @@ export function LandingPage({
     onSelectAdmin,
   };
 
+  const container = {
+    hidden: {},
+    show: {
+      transition: { staggerChildren: 0.08, delayChildren: 0.15 },
+    },
+  };
+  const item = {
+    hidden: { opacity: 0, y: 12 },
+    show: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.35, ease: "easeOut" as const },
+    },
+  };
+
   return (
     <div
-      className="flex h-full flex-col"
-      style={{ backgroundColor: CREAM }}
+      // Break out of the host `main`'s `px-4 sm:px-6 py-5` padding so the navy
+      // header spans the full viewport width (matching the mockup). At sm+
+      // we re-centre and cap the width at max-w-md so desktop stays tidy.
+      className="flex min-h-screen max-w-md flex-col -mx-4 sm:mx-auto -my-5"
+      style={{ backgroundColor: C.pageBg }}
     >
-      {/* Subtle dot pattern overlay (light-peach dots on the cream). */}
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-0"
+      {/* ---------------- Header block (navy, rounded bottom) ---------------- */}
+      <header
+        className="px-5 pb-8 pt-6 sm:pt-8"
         style={{
-          backgroundImage:
-            "radial-gradient(circle, rgba(247, 148, 29, 0.10) 1px, transparent 1px)",
-          backgroundSize: "22px 22px",
-          opacity: 0.7,
+          backgroundColor: C.gestionnaire,
+          borderBottomLeftRadius: R.headerBottom,
+          borderBottomRightRadius: R.headerBottom,
         }}
-      />
-
-      <main className="relative mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center px-5 py-6 sm:py-8">
-        {/* ---- Logo block (top center) ---- */}
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-          className="flex flex-col items-center text-center"
+      >
+        {/* QR-style logo in a white rounded square */}
+        <div
+          className="flex h-11 w-11 items-center justify-center"
+          style={{
+            backgroundColor: C.surface,
+            borderRadius: 12,
+          }}
+          aria-hidden
         >
-          <div
-            className="flex h-14 w-14 items-center justify-center rounded-full"
-            style={{ backgroundColor: "rgba(247, 148, 29, 0.14)" }}
-          >
-            <Globe
-              className="h-9 w-9"
-              style={{ color: ORANGE }}
-              strokeWidth={2.1}
-            />
-          </div>
-          <div className="mt-3 leading-tight">
-            <div
-              className="text-sm font-semibold uppercase tracking-tight"
-              style={{ color: NAVY }}
-            >
-              SOMMET
-            </div>
-            <div
-              className="text-[10px] uppercase tracking-[0.18em]"
-              style={{ color: NAVY }}
-            >
-              NATIONAL DES FILLES
-            </div>
-            <div
-              className="text-xl font-black uppercase tracking-tight"
-              style={{ color: NAVY }}
-            >
-              SONAFI
-            </div>
-          </div>
-        </motion.div>
-
-        {/* ---- Hero headline ---- */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
-          className="mt-6 text-center sm:mt-7"
-        >
-          <p className="text-lg font-normal" style={{ color: NAVY }}>
-            Maintenant
-          </p>
-          <h1
-            className="text-4xl font-black leading-tight sm:text-5xl"
-            style={{ color: NAVY }}
-          >
-            Place à
-          </h1>
-          <h1
-            className="whitespace-nowrap text-4xl font-black leading-tight sm:text-5xl"
-            style={{ color: ORANGE }}
-          >
-            l&rsquo;impact
-          </h1>
-        </motion.div>
-
-        {/* ---- Date block ---- */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.4, delay: 0.2 }}
-          className="mt-4 flex items-center justify-center gap-3"
-        >
-          <CalendarDays
-            className="h-5 w-5"
-            style={{ color: ORANGE }}
+          <QrCode
+            className="h-6 w-6"
+            style={{ color: C.gestionnaire }}
             strokeWidth={2.2}
           />
-          <span
-            className="block h-5 w-px"
-            style={{ backgroundColor: ORANGE }}
-            aria-hidden
-          />
-          <p className="text-sm sm:text-base" style={{ color: NAVY }}>
-            <span className="font-bold">22 &bull; 23 &bull; 24</span>{" "}
-            <span className="font-semibold" style={{ color: ORANGE }}>
-              OCTOBRE
-            </span>{" "}
-            <span className="font-semibold">2026</span>
-          </p>
-        </motion.div>
+        </div>
 
-        {/* ---- Role buttons ---- */}
-        <div className="mt-7 w-full space-y-3 sm:mt-8">
-          {ROLE_CARDS.map((c, idx) => {
-            const Icon = c.Icon;
-            const handle = handlers[c.onSelect];
+        {/* Title */}
+        <h1
+          className="mt-5 font-bold leading-tight tracking-tight"
+          style={{ color: "#FFFFFF", fontSize: 34 }}
+        >
+          Sonafi
+        </h1>
+
+        {/* Subtitle */}
+        <p
+          className="mt-1 font-normal leading-snug"
+          style={{ color: "#FFFFFF", fontSize: 17 }}
+        >
+          Sommet national de la jeune fille
+        </p>
+
+        {/* Two pill badges */}
+        <div className="mt-4 flex flex-wrap gap-2.5">
+          <span
+            className="inline-flex items-center font-semibold"
+            style={{
+              backgroundColor: C.headerTint,
+              color: "#FFFFFF",
+              borderRadius: R.pill,
+              paddingTop: 6,
+              paddingBottom: 6,
+              paddingLeft: 12,
+              paddingRight: 12,
+              fontSize: 14,
+            }}
+          >
+            3 jours
+          </span>
+          <span
+            className="inline-flex items-center font-semibold"
+            style={{
+              backgroundColor: C.headerTint,
+              color: "#FFFFFF",
+              borderRadius: R.pill,
+              paddingTop: 6,
+              paddingBottom: 6,
+              paddingLeft: 12,
+              paddingRight: 12,
+              fontSize: 14,
+            }}
+          >
+            500 participants
+          </span>
+        </div>
+      </header>
+
+      {/* ---------------- Body: section title + cards ---------------- */}
+      <motion.main
+        variants={container}
+        initial="hidden"
+        animate="show"
+        className="flex flex-1 flex-col px-5 py-6"
+      >
+        <h2
+          className="font-semibold tracking-tight"
+          style={{ color: C.textPrimary, fontSize: 20 }}
+        >
+          Choisissez votre espace
+        </h2>
+
+        <div className="mt-4 flex flex-col gap-3">
+          {ROLE_CARDS.map((card) => {
+            const Icon = card.Icon;
+            const handle = handlers[card.onSelect];
             return (
               <motion.button
-                key={c.id}
+                key={card.id}
                 type="button"
                 onClick={handle}
-                initial={{ opacity: 0, y: 14 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{
-                  duration: 0.35,
-                  delay: 0.3 + idx * 0.1,
-                  ease: "easeOut",
-                }}
+                variants={item}
                 whileHover={{ y: -2 }}
                 whileTap={{ scale: 0.99 }}
-                className="group flex h-24 w-full items-center gap-4 rounded-2xl border border-black/5 bg-white p-4 text-left shadow-sm transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:h-28 sm:gap-5 sm:p-5"
+                className="flex w-full items-center gap-4 bg-white p-4 text-left shadow-sm transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
                 style={{
-                  borderLeftWidth: 4,
-                  borderLeftColor: c.accent,
-                  // @ts-expect-error -- CSS variable consumed by the focus ring below
-                  "--tw-ring-color": c.accent,
+                  borderRadius: R.card,
+                  // @ts-expect-error -- consumed by Tailwind's ring utility below
+                  "--tw-ring-color": card.iconBg,
                 }}
-                aria-label={`${c.title} — ${c.subtitle}`}
+                aria-label={`${card.title} — ${card.subtitle}`}
               >
+                {/* 56×56 coloured icon container */}
                 <span
-                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full sm:h-14 sm:w-14"
-                  style={{ backgroundColor: `${c.accent}26` }}
+                  className="flex h-14 w-14 shrink-0 items-center justify-center"
+                  style={{ backgroundColor: card.iconBg, borderRadius: 14 }}
+                  aria-hidden
                 >
                   <Icon
-                    className="h-6 w-6 sm:h-7 sm:w-7"
-                    style={{ color: c.accent }}
+                    className="h-7 w-7"
+                    style={{ color: "#FFFFFF" }}
                     strokeWidth={2.1}
                   />
                 </span>
-                <span className="flex min-w-0 flex-col">
+
+                {/* Title + subtitle */}
+                <span className="flex min-w-0 flex-1 flex-col">
                   <span
-                    className="text-base font-bold leading-tight sm:text-lg"
-                    style={{ color: NAVY }}
+                    className="font-bold leading-tight"
+                    style={{ color: C.textPrimary, fontSize: 16 }}
                   >
-                    {c.title}
+                    {card.title}
                   </span>
-                  <span className="mt-0.5 text-sm text-gray-500">
-                    {c.subtitle}
+                  <span
+                    className="mt-1 leading-snug"
+                    style={{ color: C.textSecondary, fontSize: 14 }}
+                  >
+                    {card.subtitle}
                   </span>
                 </span>
+
+                {/* Chevron */}
+                <ChevronRight
+                  className="h-5 w-5 shrink-0"
+                  style={{ color: C.iconInactive }}
+                  strokeWidth={2.4}
+                  aria-hidden
+                />
               </motion.button>
             );
           })}
         </div>
-      </main>
+      </motion.main>
 
-      {/* ---- Sticky footer ---- */}
-      <footer
-        className="relative mt-auto border-t bg-white py-3 text-center"
-        style={{ borderColor: ORANGE }}
-      >
-        <p className="text-xs font-medium" style={{ color: NAVY }}>
-          Sommet national de la jeune fille &middot; 22-24 octobre 2026
+      {/* ---------------- Footer ---------------- */}
+      <footer className="px-5 pb-6 pt-2 text-center">
+        <p style={{ color: C.textSecondary, fontSize: 13 }}>
+          Accès réservé aux équipes du sommet
         </p>
       </footer>
     </div>

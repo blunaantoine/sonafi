@@ -10,7 +10,7 @@ const ADMIN_PIN = process.env.ADMIN_PIN ?? "sonafi2025";
 const OverrideSchema = z.object({
   pin: z.string().min(1),
   /** Force this pause type. Pass null to clear the override and return to auto. */
-  pauseType: z.union([z.literal("cafe"), z.literal("dejeuner"), z.null()]),
+  pauseType: z.union([z.literal("cafe"), z.literal("dejeuner"), z.literal("jeux"), z.null()]),
 });
 
 /**
@@ -74,9 +74,11 @@ export async function POST(req: NextRequest) {
     create: { key: OVERRIDE_KEY, value },
   });
 
+  const label =
+    pauseType === "cafe" ? "café" : pauseType === "dejeuner" ? "déjeuner" : "jeux";
   return NextResponse.json({
     success: true,
-    message: `Pause forcée : ${pauseType === "cafe" ? "café" : "déjeuner"}.`,
+    message: `Pause forcée : ${label}.`,
     pauseType,
     source: "override",
   });

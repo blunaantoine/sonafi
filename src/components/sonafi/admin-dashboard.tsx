@@ -28,19 +28,21 @@ import { ConfigCard } from "@/components/sonafi/config-card";
 import { BadgesTab } from "@/components/sonafi/badges-tab";
 import { ParticipantsTab } from "@/components/sonafi/participants-tab";
 import { StatsTab } from "@/components/sonafi/stats-tab";
+import { C } from "@/lib/design-tokens";
 
-// ---- Design tokens (from the Gestionnaire mockup) --------------------------
-const PURPLE_BG = "#F4F0F8";
-const PURPLE_DEEP = "#3B2370";
-const PURPLE_TEXT = "#24173F";
-const PURPLE_MUTED = "#5E5476";
+// ---- Design tokens (event colours: navy primary) --------------------------
+const PURPLE_BG = C.pageBg;
+const PURPLE_DEEP = C.gestionnaire;
+const PURPLE_TEXT = C.textPrimary;
+const PURPLE_MUTED = C.textSecondary;
 const PURPLE_CARD_BORDER = "#E4DDEE";
-const PURPLE_SEGMENT_BG = "#E8E1F2";
-const PURPLE_TRACK = "#EAE4F2";
-const PURPLE_ICON_TILE = "#ECE6F7";
-const PURPLE_DIVIDER = "#EEE8F5";
-const TEAL = "#0F766E";
-const ROSE = "#C2255C";
+const PURPLE_SEGMENT_BG = C.gestionnaireTint;
+const PURPLE_TRACK = C.track;
+const PURPLE_ICON_TILE = C.gestionnaireTint;
+const PURPLE_DIVIDER = C.divider;
+const TEAL = C.entriesBar;
+const ROSE = C.pauseCafe;
+const JEUX_BAR = C.pauseJeux;
 
 type View = "dashboard" | "participants" | "badges" | "historique" | "config";
 
@@ -224,6 +226,13 @@ export function AdminDashboard({
             value={detail?.dejeuner ?? 0}
             total={total}
             color={ROSE}
+            track={PURPLE_TRACK}
+          />
+          <ProgressBar
+            label="Pause des jeux"
+            value={(detail as { jeux?: number } | null)?.jeux ?? 0}
+            total={total}
+            color={JEUX_BAR}
             track={PURPLE_TRACK}
           />
         </div>

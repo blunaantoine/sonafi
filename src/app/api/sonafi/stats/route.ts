@@ -54,21 +54,22 @@ export async function GET(req: NextRequest) {
   const dayCounts: Record<number, number> = { 1: 0, 2: 0, 3: 0 };
   for (const row of byDay) dayCounts[row.day] = row._count._all;
 
-  const pauseCounts: Record<string, number> = { cafe: 0, dejeuner: 0 };
+  const pauseCounts: Record<string, number> = { cafe: 0, dejeuner: 0, jeux: 0 };
   for (const row of byPauseType) pauseCounts[row.pauseType] = row._count._all;
 
   const entryDayCounts: Record<number, number> = { 1: 0, 2: 0, 3: 0 };
   for (const row of entriesByDayRows) entryDayCounts[row.day] = row._count._all;
 
   // Per-day detail (only when ?day= was provided).
-  let dayDetail: { day: number; entries: number; cafe: number; dejeuner: number } | null = null;
+  let dayDetail: { day: number; entries: number; cafe: number; dejeuner: number; jeux: number } | null = null;
   if (day !== null) {
-    const [entries, cafe, dejeuner] = await Promise.all([
+    const [entries, cafe, dejeuner, jeux] = await Promise.all([
       db.entry.count({ where: { day } }),
       db.pause.count({ where: { day, pauseType: "cafe" } }),
       db.pause.count({ where: { day, pauseType: "dejeuner" } }),
+      db.pause.count({ where: { day, pauseType: "jeux" } }),
     ]);
-    dayDetail = { day, entries, cafe, dejeuner };
+    dayDetail = { day, entries, cafe, dejeuner, jeux };
   }
 
   return NextResponse.json({
