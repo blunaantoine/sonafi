@@ -110,25 +110,9 @@ export function LandingPage({
           borderBottomRightRadius: R.headerBottom,
         }}
       >
-        {/* SONAFI logo in a white rounded square */}
-        <div
-          className="flex h-12 w-12 items-center justify-center overflow-hidden"
-          style={{
-            backgroundColor: C.surface,
-            borderRadius: 12,
-          }}
-          aria-hidden
-        >
-          <img
-            src="/apple-touch-icon.png"
-            alt=""
-            className="h-full w-full object-cover"
-          />
-        </div>
-
         {/* Title */}
         <h1
-          className="mt-4 font-bold leading-tight tracking-tight"
+          className="font-bold leading-tight tracking-tight"
           style={{ color: "#FFFFFF", fontSize: 32 }}
         >
           Sonafi
