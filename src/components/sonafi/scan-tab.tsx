@@ -36,6 +36,7 @@ import { motion } from "framer-motion";
 import {
   AlertTriangle,
   ArrowLeft,
+  Camera,
   Clock,
   Loader2,
   RefreshCw,
@@ -115,18 +116,18 @@ function writeLS(key: string, value: unknown): void {
 function friendlyCameraError(err: unknown): string {
   const msg = err instanceof Error ? err.message : String(err);
   if (/NotAllowedError|PermissionDenied/i.test(msg)) {
-    return "Accès à la caméra refusé. Autorisez la caméra dans les réglages du navigateur, puis réessayez.";
+    return "Accès à la caméra refusé. Ouvrez les réglages du navigateur (icône 🔒 dans la barre d'adresse), autorisez la caméra, puis réessayez.";
   }
   if (/NotFoundError|DevicesNotFoundError|CameraNotFound/i.test(msg)) {
-    return "Aucune caméra détectée sur cet appareil.";
+    return "Aucune caméra détectée sur cet appareil. Sur iPhone, utilisez Safari.";
   }
   if (/NotReadableError|TrackStartError|NotReadable/i.test(msg)) {
     return "La caméra est déjà utilisée par une autre application. Fermez-la, puis réessayez.";
   }
   if (/InsecureContext|HTTPS|getUserMedia/i.test(msg)) {
-    return "La caméra nécessite une connexion HTTPS sécurisée.";
+    return "La caméra nécessite une connexion HTTPS sécurisée. Le site doit être servi en HTTPS, pas en HTTP.";
   }
-  return "Impossible d'activer la caméra. Vérifiez votre navigateur et réessayez.";
+  return "Impossible d'activer la caméra. Vérifiez que vous avez autorisé l'accès et que le site est en HTTPS.";
 }
 
 // ---------------------------------------------------------------------------
@@ -158,6 +159,8 @@ export function ScanTab() {
   const html5Ref = useRef<Html5Qrcode | null>(null);
   const [cameraReady, setCameraReady] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  /** Has the user explicitly requested camera access? (iOS requires a gesture.) */
+  const [cameraRequested, setCameraRequested] = useState(false);
 
   // ----- Scan flow state ---------------------------------------------------
   const scanningRef = useRef(true);
@@ -301,11 +304,36 @@ export function ScanTab() {
     [recordPause],
   );
 
-  // ----- startCamera: dynamic-import html5-qrcode, prefer back camera -----
+  // ----- startCamera: request permission explicitly, then start html5-qrcode
   const startCamera = useCallback(async () => {
     setCameraError(null);
     setCameraReady(false);
+    setCameraRequested(true);
 
+    // Step 1: explicitly request camera permission via the native API. This
+    // triggers the browser's permission prompt on mobile (iOS Safari, Android
+    // Chrome) and gives a clear error if denied — before html5-qrcode starts.
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setCameraError(
+          "La caméra n'est pas supportée par ce navigateur. Sur iPhone, utilisez Safari.",
+        );
+        return;
+      }
+      // Probe the back camera — this is what triggers the permission prompt.
+      const probe = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" } },
+        audio: false,
+      });
+      // Stop the probe stream immediately; html5-qrcode will request its own.
+      probe.getTracks().forEach((t) => t.stop());
+    } catch (err) {
+      setCameraError(friendlyCameraError(err));
+      setCameraReady(false);
+      return;
+    }
+
+    // Step 2: start html5-qrcode now that permission is granted.
     try {
       const { Html5Qrcode } = await import("html5-qrcode");
 
@@ -351,9 +379,9 @@ export function ScanTab() {
     }
   }, [handleScan]);
 
-  // ----- mount: auto-start camera; unmount: stop + clear -------------------
+  // ----- mount: do NOT auto-start the camera (iOS needs a user gesture to
+  // show the permission prompt). Cleanup on unmount only. -----------------
   useEffect(() => {
-    void startCamera();
     return () => {
       if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
       const inst = html5Ref.current;
@@ -374,8 +402,6 @@ export function ScanTab() {
         }
       })();
     };
-    // We deliberately start only once on mount — startCamera is captured at
-    // first render, which is exactly what we want (initial camera).
   }, []);
 
   // ----- dismissOverlay: called when the user taps "Scanner le suivant" ----
@@ -440,6 +466,8 @@ export function ScanTab() {
             <ViewfinderCard
               cameraReady={cameraReady}
               cameraError={cameraError}
+              cameraRequested={cameraRequested}
+              onActivate={() => void startCamera()}
               onRetry={() => void startCamera()}
             />
           </section>
@@ -536,12 +564,17 @@ function PauseIndicatorCard({ pause }: { pause: EffectivePause | null }) {
 interface ViewfinderCardProps {
   cameraReady: boolean;
   cameraError: string | null;
+  /** Has the user tapped "Activer la caméra" at least once? */
+  cameraRequested: boolean;
+  onActivate: () => void;
   onRetry: () => void;
 }
 
 function ViewfinderCard({
   cameraReady,
   cameraError,
+  cameraRequested,
+  onActivate,
   onRetry,
 }: ViewfinderCardProps) {
   return (
@@ -550,9 +583,6 @@ function ViewfinderCard({
       style={{
         backgroundColor: C.viewfinder,
         borderRadius: 20,
-        // Cap the viewfinder height so the page fits in the viewport on phones.
-        // 50vh on an 844px iPhone = 422px → clamped to 380px; minHeight keeps it
-        // usable on very short screens.
         height: "min(50vh, 380px)",
         minHeight: 240,
       }}
@@ -591,8 +621,40 @@ function ViewfinderCard({
         </p>
       )}
 
-      {/* Initialising spinner */}
-      {!cameraReady && !cameraError && (
+      {/* === Activation prompt (before the user has requested the camera) === */}
+      {!cameraRequested && !cameraError && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-6 text-center text-white">
+          <Camera
+            className="h-12 w-12"
+            style={{ color: C.restaurationSoft }}
+            strokeWidth={1.8}
+          />
+          <div>
+            <p className="text-base font-semibold">
+              Activer la caméra
+            </p>
+            <p className="mt-1 max-w-xs text-sm text-white/75">
+              Autorisez l'accès à la caméra pour scanner les badges QR des
+              participantes.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onActivate}
+            className="mt-2 inline-flex min-h-12 items-center gap-2 rounded-full bg-white px-6 py-3 text-base font-bold text-gray-900 shadow-md transition-transform active:scale-95"
+            style={{ color: C.restauration }}
+          >
+            <Camera className="h-5 w-5" />
+            Activer la caméra
+          </button>
+          <p className="mt-1 max-w-xs text-[11px] leading-snug text-white/55">
+            L'accès à la caméra nécessite une connexion HTTPS sécurisée.
+          </p>
+        </div>
+      )}
+
+      {/* Initialising spinner (after the user tapped activate, while starting) */}
+      {cameraRequested && !cameraReady && !cameraError && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white/85">
           <Loader2 className="h-8 w-8 animate-spin" />
           <p className="text-sm">Activation de la caméra…</p>
