@@ -8,7 +8,7 @@ const LS_KEY = "sonafi.role";
 /** null = landing page (no role chosen yet). */
 type RoleOrHome = Role | "home";
 
-function readRole(): RoleOrHome {
+function readStoredRole(): RoleOrHome {
   if (typeof window === "undefined") return "home";
   try {
     const v = window.localStorage.getItem(LS_KEY);
@@ -29,14 +29,25 @@ function readRole(): RoleOrHome {
  * Becoming "admin" still requires the PIN via the admin gate; the role in
  * localStorage alone is not enough — the server re-checks the PIN on every
  * privileged action.
+ *
+ * Hydration-safe: we always render "home" on the first pass (matching the
+ * server), then read localStorage in an effect and switch to the stored role.
+ * This avoids the "server rendered HTML didn't match the client" mismatch that
+ * happens when reading localStorage during initial render.
  */
 export function useRole() {
-  const [role, setRoleState] = useState<RoleOrHome>(readRole);
+  const [role, setRoleState] = useState<RoleOrHome>("home");
+
+  // After mount, read the stored role so we resume a previous session. This
+  // runs after hydration, so the first client render matches the server.
+  useEffect(() => {
+    setRoleState(readStoredRole());
+  }, []);
 
   // Keep the hook in sync if another tab changes the role.
   useEffect(() => {
     function onStorage(e: StorageEvent) {
-      if (e.key === LS_KEY) setRoleState(readRole());
+      if (e.key === LS_KEY) setRoleState(readStoredRole());
     }
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
