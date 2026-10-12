@@ -4,9 +4,8 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import {
   DEFAULT_TOTAL_PARTICIPANTS,
-  formatParticipantId,
+  generateId,
   generateToken,
-  parseParticipantId,
 } from "@/lib/sonafi";
 
 /** Setting key under which the configured participant count is stored. */
@@ -111,31 +110,26 @@ export async function PUT(req: NextRequest) {
 
   // Sync participants inside a transaction.
   const result = await db.$transaction(async (tx) => {
-    // 1. Create any missing IDs (1..totalParticipants). Existing rows (with
-    //    their real imported names) are left untouched — we only insert the
-    //    ones that don't exist yet. (Prisma's SQLite driver doesn't support
-    //    createMany skipDuplicates, so we filter first.)
+    // 1. Create missing participants so the count reaches totalParticipants.
+    //    Each gets a random, non-guessable id (e.g. "0R1DF") + a random token
+    //    (the QR secret). Existing rows are left untouched.
+    const existingCount = await tx.participant.count();
+    const toCreate: { id: string; token: string; name: string }[] = [];
+    // Track existing ids + tokens so new ones don't collide.
     const existingIds = new Set(
-      (
-        await tx.participant.findMany({
-          select: { id: true, token: true },
-        })
-      ).map((p) => p.id),
+      (await tx.participant.findMany({ select: { id: true } })).map((p) => p.id),
     );
-    // Track existing tokens so new ones don't collide.
     const existingTokens = new Set(
       (await tx.participant.findMany({ select: { token: true } })).map((p) => p.token),
     );
-    const toCreate: { id: string; token: string; name: string }[] = [];
-    for (let i = 1; i <= totalParticipants; i += 1) {
-      const id = formatParticipantId(i);
-      if (!existingIds.has(id)) {
-        // Generate a unique, non-guessable token for the QR code.
-        let token = generateToken();
-        while (existingTokens.has(token)) token = generateToken();
-        existingTokens.add(token);
-        toCreate.push({ id, token, name: `Participant ${id}` });
-      }
+    for (let i = existingCount; i < totalParticipants; i += 1) {
+      let id = generateId();
+      while (existingIds.has(id)) id = generateId();
+      existingIds.add(id);
+      let token = generateToken();
+      while (existingTokens.has(token)) token = generateToken();
+      existingTokens.add(token);
+      toCreate.push({ id, token, name: `Participant ${id}` });
     }
     // Chunk createMany to keep the query reasonable (SQLite variable limits).
     const CHUNK = 500;
@@ -145,16 +139,14 @@ export async function PUT(req: NextRequest) {
       });
     }
 
-    // 2. Remove participants whose numeric index is beyond the new count, but
-    //    only if they have NO pauses (preserve scan history).
+    // 2. Remove excess participants (those beyond the new count) but only if
+    //    they have NO pauses (preserve scan history). Since ids are random, we
+    //    just remove from the end of the (ordered) list.
     const all = await tx.participant.findMany({
       select: { id: true },
-      orderBy: { id: "asc" },
+      orderBy: { createdAt: "asc" },
     });
-    const removable = all.filter((p) => {
-      const n = parseParticipantId(p.id);
-      return !Number.isNaN(n) && n > totalParticipants;
-    });
+    const removable = all.slice(totalParticipants);
     let removed = 0;
     let keptWithScans = 0;
     for (const p of removable) {

@@ -67,15 +67,46 @@ export function AdminDashboard({
 }: AdminDashboardProps) {
   const [view, setView] = useState<View>("dashboard");
   // The current day is admin-programmed and shared across all devices.
-  const { day, refetch: refetchDay } = useCurrentDay();
+  const { day, dates, forced, refetch: refetchDay } = useCurrentDay();
   const [dayLoading, setDayLoading] = useState(false);
   const [detail, setDetail] = useState<DayDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  // Set the current day (admin-only, PIN-checked server-side).
+  // Set the dates for jour 1/2/3 (admin-only, PIN-checked server-side).
+  const saveDates = useCallback(
+    async (newDates: { 1?: string; 2?: string; 3?: string }) => {
+      const pin = sessionStorage.getItem("sonafi.adminPin") ?? "";
+      if (!pin) {
+        toast({ variant: "destructive", title: "Session expirée", description: "Redevenez admin." });
+        return;
+      }
+      setDayLoading(true);
+      try {
+        const res = await fetch("/api/sonafi/day", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pin, dates: newDates }),
+        });
+        const data = (await res.json().catch(() => ({}))) as { success?: boolean; message?: string };
+        if (res.ok && data.success) {
+          refetchDay();
+          toast({ title: "Dates enregistrées", description: "Le jour courant se déduit des dates." });
+        } else {
+          toast({ variant: "destructive", title: "Échec", description: data.message ?? "Réessayez." });
+        }
+      } catch {
+        toast({ variant: "destructive", title: "Réseau indisponible", description: "Réessayez." });
+      } finally {
+        setDayLoading(false);
+      }
+    },
+    [refetchDay, toast],
+  );
+
+  // Force the current day (the "retard" override) or clear it (null → auto).
   const setSharedDay = useCallback(
-    async (d: DayNumber) => {
+    async (d: DayNumber | null) => {
       const pin = sessionStorage.getItem("sonafi.adminPin") ?? "";
       if (!pin) {
         toast({ variant: "destructive", title: "Session expirée", description: "Redevenez admin." });
@@ -91,6 +122,7 @@ export function AdminDashboard({
         const data = (await res.json().catch(() => ({}))) as { success?: boolean; message?: string };
         if (res.ok && data.success) {
           refetchDay();
+          toast({ title: d == null ? "Mode automatique" : `Jour forcé : ${d}` });
         } else {
           toast({ variant: "destructive", title: "Échec", description: data.message ?? "Réessayez." });
         }
@@ -210,35 +242,16 @@ export function AdminDashboard({
       {/* ---- Body (scrollable so all content is reachable on mobile) ---- */}
       <div className="flex-1 overflow-y-auto">
       <div className="flex flex-col gap-4 px-5 pt-5 pb-safe">
-        {/* Day selector — admin programs the current day (shared with all devices) */}
-        <div>
-          <p className="mb-1.5 text-[13px] font-medium" style={{ color: PURPLE_MUTED }}>
-            Jour courant — programmé par l'admin
-          </p>
-          <div
-            className="grid grid-cols-3 gap-1 p-1"
-            style={{ background: PURPLE_SEGMENT_BG, borderRadius: 16 }}
-          >
-            {DAYS.map((d) => {
-              const active = d === day;
-              return (
-                <button
-                  key={d}
-                  type="button"
-                  aria-pressed={active}
-                  disabled={dayLoading}
-                  onClick={() => void setSharedDay(d)}
-                  className={cn(
-                    "h-11 rounded-xl text-[15px] font-semibold transition-colors disabled:opacity-60",
-                    active ? "bg-white text-[#24173F] font-bold shadow-sm" : "bg-transparent text-[#5E5476]",
-                  )}
-                >
-                  {DAY_LABELS[d]}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        {/* Day config — dates + current day (shared with all devices) */}
+        <DayConfigCard
+          day={day}
+          dates={dates}
+          forced={forced}
+          loading={dayLoading}
+          onForce={(d) => void setSharedDay(d)}
+          onClearForce={() => void setSharedDay(null)}
+          onSaveDates={(d) => void saveDates(d)}
+        />
 
         {/* Stats card with progress bars */}
         <div
@@ -462,3 +475,171 @@ function SubView({
 }
 
 export default AdminDashboard;
+
+// ---- DayConfigCard — dates + force/clear the current day -------------------
+
+interface DayConfigCardProps {
+  day: DayNumber;
+  dates: Record<string, string>;
+  forced: boolean;
+  loading: boolean;
+  onForce: (d: DayNumber) => void;
+  onClearForce: () => void;
+  onSaveDates: (dates: { 1?: string; 2?: string; 3?: string }) => void;
+}
+
+function DayConfigCard({
+  day,
+  dates,
+  forced,
+  loading,
+  onForce,
+  onClearForce,
+  onSaveDates,
+}: DayConfigCardProps) {
+  const [editing, setEditing] = useState(false);
+  const [d1, setD1] = useState(dates["1"] ?? "");
+  const [d2, setD2] = useState(dates["2"] ?? "");
+  const [d3, setD3] = useState(dates["3"] ?? "");
+
+  // Sync local inputs when the server-side dates change.
+  useEffect(() => {
+    setD1(dates["1"] ?? "");
+    setD2(dates["2"] ?? "");
+    setD3(dates["3"] ?? "");
+  }, [dates]);
+
+  return (
+    <div
+      className="flex flex-col gap-3 p-[18px]"
+      style={{ background: "#FFFFFF", border: `1px solid ${PURPLE_CARD_BORDER}`, borderRadius: 22 }}
+    >
+      <div className="flex items-center justify-between">
+        <p className="text-[15px] font-bold">
+          Jour courant : {DAY_LABELS[day]}
+        </p>
+        <span
+          className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+          style={{
+            background: forced ? "rgba(220,38,38,0.12)" : "rgba(15,118,110,0.12)",
+            color: forced ? "#DC2626" : "#0F766E",
+          }}
+        >
+          {forced ? "Forcé" : "Auto"}
+        </span>
+      </div>
+
+      {/* Configured dates */}
+      <div className="flex flex-col gap-1.5">
+        {DAYS.map((d) => (
+          <div key={d} className="flex items-center justify-between text-[13px]">
+            <span style={{ color: PURPLE_MUTED }}>{DAY_LABELS[d]}</span>
+            <span className="font-medium">
+              {dates[String(d)]
+                ? new Date(dates[String(d)] + "T00:00:00").toLocaleDateString("fr-FR", {
+                    day: "2-digit",
+                    month: "long",
+                  })
+                : "—"}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* Quick force buttons (the "retard" override) */}
+      <div
+        className="grid grid-cols-4 gap-1 p-1"
+        style={{ background: PURPLE_SEGMENT_BG, borderRadius: 12 }}
+      >
+        {DAYS.map((d) => (
+          <button
+            key={d}
+            type="button"
+            disabled={loading}
+            onClick={() => onForce(d)}
+            className={cn(
+              "h-9 rounded-lg text-[13px] font-semibold transition-colors disabled:opacity-50",
+              forced && day === d
+                ? "bg-white font-bold shadow-sm"
+                : "bg-transparent",
+            )}
+            style={
+              forced && day === d
+                ? { color: "#24173F" }
+                : { color: "#5E5476" }
+            }
+          >
+            Forcer J{d}
+          </button>
+        ))}
+        <button
+          type="button"
+          disabled={loading || !forced}
+          onClick={onClearForce}
+          className={cn(
+            "h-9 rounded-lg text-[13px] font-semibold transition-colors disabled:opacity-40",
+            "bg-transparent",
+          )}
+          style={{ color: "#5E5476" }}
+        >
+          Auto
+        </button>
+      </div>
+
+      {/* Edit dates */}
+      {!editing ? (
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          className="text-[13px] font-medium underline"
+          style={{ color: PURPLE_DEEP }}
+        >
+          Programmer les dates des jours
+        </button>
+      ) : (
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2">
+            {[
+              { label: "Jour 1", val: d1, set: setD1 },
+              { label: "Jour 2", val: d2, set: setD2 },
+              { label: "Jour 3", val: d3, set: setD3 },
+            ].map((row) => (
+              <label key={row.label} className="flex items-center gap-3 text-[13px]">
+                <span className="w-16" style={{ color: PURPLE_MUTED }}>{row.label}</span>
+                <input
+                  type="date"
+                  value={row.val}
+                  onChange={(e) => row.set(e.target.value)}
+                  className="flex-1 rounded-lg border px-2 py-1.5 text-[13px]"
+                  style={{ borderColor: PURPLE_CARD_BORDER, color: PURPLE_TEXT }}
+                />
+              </label>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={loading}
+              onClick={() => {
+                onSaveDates({ 1: d1 || undefined, 2: d2 || undefined, 3: d3 || undefined });
+                setEditing(false);
+              }}
+              className="flex-1 rounded-lg py-2 text-[13px] font-semibold text-white disabled:opacity-50"
+              style={{ backgroundColor: PURPLE_DEEP }}
+            >
+              Enregistrer
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              className="rounded-lg px-4 py-2 text-[13px] font-semibold"
+              style={{ color: PURPLE_MUTED }}
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

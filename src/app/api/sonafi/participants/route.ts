@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { formatParticipantId, generateToken } from "@/lib/sonafi";
+import { generateId, generateToken } from "@/lib/sonafi";
 
 /** GET /api/sonafi/participants — list all participants (with optional search). */
 export async function GET(req: NextRequest) {
@@ -29,10 +29,12 @@ export async function GET(req: NextRequest) {
 }
 
 interface ImportBody {
-  /** Optional list of {id, name} to upsert. If omitted, the default 500 are seeded. */
+  /** Optional list of {id, name} to upsert. */
   participants?: { id: string; name: string }[];
-  /** Optional flag: when true, also seed the 500 default ids if they don't exist. */
+  /** When true, seed N random-id participants (default 500). */
   seed?: boolean;
+  /** Number of participants to seed (default 500). */
+  count?: number;
 }
 
 /** POST /api/sonafi/participants — bulk import / seed participants. */
@@ -47,8 +49,17 @@ export async function POST(req: NextRequest) {
   const ops: { id: string; name: string }[] = [];
 
   if (body.seed) {
-    for (let i = 1; i <= 500; i += 1) {
-      const id = formatParticipantId(i);
+    // Seed 500 participants with random, non-guessable ids (e.g. "0R1DF").
+    // We generate unique ids (with collision retry) so the badge id itself
+    // can't be enumerated.
+    const existingIds = new Set(
+      (await db.participant.findMany({ select: { id: true } })).map((p) => p.id),
+    );
+    const count = body.count && typeof body.count === "number" ? body.count : 500;
+    for (let i = 0; i < count; i += 1) {
+      let id = generateId();
+      while (existingIds.has(id)) id = generateId();
+      existingIds.add(id);
       ops.push({ id, name: `Participant ${id}` });
     }
   }

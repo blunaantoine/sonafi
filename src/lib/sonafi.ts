@@ -103,28 +103,50 @@ export function parseParticipantId(id: string): number {
   return m ? Number(m[1]) : NaN;
 }
 
-// ---- Participant tokens (QR content) ---------------------------------------
-// The QR code on each badge encodes a random, non-sequential token so badges
-// can't be guessed or duplicated (knowing ID0042 doesn't help guess another).
-// The human-readable ID (ID0042) stays on the badge for management, but the
-// scanned value is the secret token.
+// ---- Random participant IDs (non-guessable) --------------------------------
+// Each participant gets a random 5-character alphanumeric ID (e.g. "0R1DF",
+// "3RE5D") instead of a sequential "ID0042". This makes the badge ID itself
+// non-guessable, so a fraudster can't enumerate participants.
 
-/** Unambiguous alphabet (no 0/O/1/I/L) for readable tokens. */
-const TOKEN_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+/** Unambiguous alphabet (no 0/O/1/I/L) for readable codes. */
+const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+const ID_LENGTH = 5;
+
+/** Fill a Uint32Array with cryptographically random values (fallback: Math.random). */
+function randomBytes(length: number): Uint32Array {
+  const arr = new Uint32Array(length);
+  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+    crypto.getRandomValues(arr);
+  } else {
+    for (let i = 0; i < length; i += 1) arr[i] = Math.floor(Math.random() * 0xffffffff);
+  }
+  return arr;
+}
+
+/** Generate a random 5-char participant id, e.g. "0R1DF". */
+export function generateId(): string {
+  const arr = randomBytes(ID_LENGTH);
+  let out = "";
+  for (let i = 0; i < ID_LENGTH; i += 1) {
+    out += CODE_ALPHABET[arr[i] % CODE_ALPHABET.length];
+  }
+  return out;
+}
+
+// ---- Participant tokens (QR content) ---------------------------------------
+// The QR code on each badge encodes a random, non-sequential token (longer
+// than the id) so badges can't be guessed or duplicated. The human-readable id
+// ("0R1DF") is shown on the badge for management; the scanned value is the
+// secret token.
+
 const TOKEN_LENGTH = 8;
 
 /** Generate a random participant token, e.g. "K7Q2M9XH". */
 export function generateToken(): string {
-  const arr = new Uint32Array(TOKEN_LENGTH);
-  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
-    crypto.getRandomValues(arr);
-  } else {
-    // Fallback (non-crypto) — only used in very old runtimes.
-    for (let i = 0; i < TOKEN_LENGTH; i += 1) arr[i] = Math.floor(Math.random() * 0xffffffff);
-  }
+  const arr = randomBytes(TOKEN_LENGTH);
   let out = "";
   for (let i = 0; i < TOKEN_LENGTH; i += 1) {
-    out += TOKEN_ALPHABET[arr[i] % TOKEN_ALPHABET.length];
+    out += CODE_ALPHABET[arr[i] % CODE_ALPHABET.length];
   }
   return out;
 }
