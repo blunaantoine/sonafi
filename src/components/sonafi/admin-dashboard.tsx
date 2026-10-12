@@ -240,29 +240,33 @@ export function AdminDashboard({
     >
       {/* ---- Navy header ---- */}
       <div
-        className="flex flex-col gap-3 px-5 pb-5 pt-safe safe-x text-white"
+        className="flex flex-col gap-2 px-5 pb-6 pt-safe safe-x text-white"
         style={{ backgroundColor: NAVY, borderRadius: "0 0 24px 24px" }}
       >
+        {/* Top utility row: back button + pill badge */}
         <div className="flex items-center justify-between">
           <button
             type="button"
             onClick={onGoHome}
             aria-label="Retour à l'accueil"
-            className="flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-white/25"
+            className="flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-white/25"
             style={{ background: "rgba(255,255,255,0.28)" }}
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
           <span
-            className="rounded-full px-3 py-1.5 text-sm font-bold"
+            className="rounded-full px-3 py-1 text-xs font-semibold"
             style={{ background: "rgba(255,255,255,0.28)" }}
           >
             Gestionnaire
           </span>
         </div>
-        <div className="flex flex-col gap-0.5">
-          <h1 className="text-xl font-extrabold tracking-tight">Espace gestionnaire</h1>
-          <p className="text-[14px]" style={{ color: "rgba(255,255,255,0.88)" }}>
+        {/* Title block: tighter, balanced vertical rhythm */}
+        <div className="flex flex-col gap-1.5">
+          <h1 className="text-xl font-extrabold tracking-tight leading-tight">
+            Espace gestionnaire
+          </h1>
+          <p className="text-[13px] leading-snug" style={{ color: "rgba(255,255,255,0.82)" }}>
             Suivi en direct du sommet
           </p>
         </div>
