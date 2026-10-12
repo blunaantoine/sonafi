@@ -1,0 +1,787 @@
+     1→     1→"use client";
+     2→     2→
+     3→     3→import {
+     4→     4→  useCallback,
+     5→     5→  useEffect,
+     6→     6→  useRef,
+     7→     7→  useState,
+     8→     8→  type ReactNode,
+     9→     9→} from "react";
+    10→    10→import { AnimatePresence, motion } from "framer-motion";
+    11→    11→import {
+    12→    12→  AlertTriangle,
+    13→    13→  Check,
+    14→    14→  Loader2,
+    15→    15→  RefreshCw,
+    16→    16→  RotateCcw,
+    17→    17→  ScanLine,
+    18→    18→  WifiOff,
+    19→    19→  X,
+    20→    20→} from "lucide-react";
+    21→    21→import type { Html5Qrcode } from "html5-qrcode";
+    22→    22→import { Button } from "@/components/ui/button";
+    23→    23→import { Card, CardContent } from "@/components/ui/card";
+    24→    24→import {
+    25→    25→  DAY_LABELS,
+    26→    26→  DAYS,
+    27→    27→  PAUSE_META,
+    28→    28→  PAUSE_TYPES,
+    29→    29→  formatTimestamp,
+    30→    30→  type DayNumber,
+    31→    31→  type PauseType,
+    32→    32→} from "@/lib/sonafi";
+    33→    33→import { cn } from "@/lib/utils";
+    34→    34→
+    35→    35→// ---------------------------------------------------------------------------
+    36→    36→// Constants
+    37→    37→// ---------------------------------------------------------------------------
+    38→    38→
+    39→    39→/** Element id into which html5-qrcode injects the <video> stream. */
+    40→    40→const QR_READER_ID = "sonafi-qr-reader";
+    41→    41→
+    42→    42→/** Ignore repeated decodes of the same code within this window (ms). */
+    43→    43→const DEBOUNCE_MS = 2500;
+    44→    44→
+    45→    45→/** How long the result overlay stays on screen after a result (ms). */
+    46→    46→const OVERLAY_MS = 2200;
+    47→    47→
+    48→    48→/** Keep at most this many recent scans in the session list. */
+    49→    49→const MAX_RECENT = 12;
+    50→    50→
+    51→    51→const LS_DAY = "sonafi.scan.day";
+    52→    52→const LS_PAUSE = "sonafi.scan.pauseType";
+    53→    53→
+    54→    54→// ---------------------------------------------------------------------------
+    55→    55→// Types
+    56→    56→// ---------------------------------------------------------------------------
+    57→    57→
+    58→    58→type ResultState = "loading" | "success" | "duplicate" | "unknown" | "error";
+    59→    59→type ScanStatus = "validated" | "duplicate" | "unknown" | "error";
+    60→    60→
+    61→    61→interface OverlayState {
+    62→    62→  state: ResultState;
+    63→    63→  participantId: string;
+    64→    64→  participantName?: string;
+    65→    65→  day: DayNumber;
+    66→    66→  pauseType: PauseType;
+    67→    67→  timestamp?: string;
+    68→    68→}
+    69→    69→
+    70→    70→interface ScanEntry {
+    71→    71→  id: string;
+    72→    72→  participantId: string;
+    73→    73→  participantName?: string;
+    74→    74→  day: DayNumber;
+    75→    75→  pauseType: PauseType;
+    76→    76→  timestamp: string;
+    77→    77→  status: ScanStatus;
+    78→    78→}
+    79→    79→
+    80→    80→interface OverlayTheme {
+    81→    81→  bg: string;
+    82→    82→  icon: ReactNode;
+    83→    83→  headline: string;
+    84→    84→  sub?: string;
+    85→    85→  meta?: string;
+    86→    86→}
+    87→    87→
+    88→    88→// Solid dot colour per pause type — brighter than PAUSE_META.soft for visibility.
+    89→    89→const PAUSE_DOT: Record<PauseType, string> = {
+    90→    90→  cafe: "bg-amber-500",
+    91→    91→  dejeuner: "bg-orange-500",
+    92→    92→};
+    93→    93→
+    94→    94→// ---------------------------------------------------------------------------
+    95→    95→// localStorage helpers (sanitised — never trust what's in there)
+    96→    96→// ---------------------------------------------------------------------------
+    97→    97→
+    98→    98→function readDay(): DayNumber {
+    99→    99→  if (typeof window === "undefined") return 1;
+   100→   100→  try {
+   101→   101→    const raw = window.localStorage.getItem(LS_DAY);
+   102→   102→    const n = raw == null ? NaN : Number(JSON.parse(raw));
+   103→   103→    if (n === 1 || n === 2 || n === 3) return n;
+   104→   104→  } catch {
+   105→   105→    /* ignore */
+   106→   106→  }
+   107→   107→  return 1;
+   108→   108→}
+   109→   109→
+   110→   110→function readPause(): PauseType {
+   111→   111→  if (typeof window === "undefined") return "cafe";
+   112→   112→  try {
+   113→   113→    const raw = window.localStorage.getItem(LS_PAUSE);
+   114→   114→    if (raw == null) return "cafe";
+   115→   115→    const v = JSON.parse(raw) as string;
+   116→   116→    if (v === "cafe" || v === "dejeuner") return v;
+   117→   117→  } catch {
+   118→   118→    /* ignore */
+   119→   119→  }
+   120→   120→  return "cafe";
+   121→   121→}
+   122→   122→
+   123→   123→function writeLS(key: string, value: unknown): void {
+   124→   124→  try {
+   125→   125→    window.localStorage.setItem(key, JSON.stringify(value));
+   126→   126→  } catch {
+   127→   127→    /* ignore quota / privacy errors */
+   128→   128→  }
+   129→   129→}
+   130→   130→
+   131→   131→// ---------------------------------------------------------------------------
+   132→   132→// Friendly camera error translation
+   133→   133→// ---------------------------------------------------------------------------
+   134→   134→
+   135→   135→function friendlyCameraError(err: unknown): string {
+   136→   136→  const msg = err instanceof Error ? err.message : String(err);
+   137→   137→  if (/NotAllowedError|PermissionDenied/i.test(msg)) {
+   138→   138→    return "Accès à la caméra refusé. Autorisez la caméra dans les réglages du navigateur, puis réessayez.";
+   139→   139→  }
+   140→   140→  if (/NotFoundError|DevicesNotFoundError|CameraNotFound/i.test(msg)) {
+   141→   141→    return "Aucune caméra détectée sur cet appareil.";
+   142→   142→  }
+   143→   143→  if (/NotReadableError|TrackStartError|NotReadable/i.test(msg)) {
+   144→   144→    return "La caméra est déjà utilisée par une autre application. Fermez-la, puis réessayez.";
+   145→   145→  }
+   146→   146→  if (/InsecureContext|HTTPS|getUserMedia/i.test(msg)) {
+   147→   147→    return "La caméra nécessite une connexion HTTPS sécurisée.";
+   148→   148→  }
+   149→   149→  return "Impossible d'activer la caméra. Vérifiez votre navigateur et réessayez.";
+   150→   150→}
+   151→   151→
+   152→   152→// ---------------------------------------------------------------------------
+   153→   153→// Component
+   154→   154→// ---------------------------------------------------------------------------
+   155→   155→
+   156→   156→export function ScanTab() {
+   157→   157→  // ----- Persistent selectors ---------------------------------------------
+   158→   158→  const [day, setDay] = useState<DayNumber>(readDay);
+   159→   159→  const [pauseType, setPauseType] = useState<PauseType>(readPause);
+   160→   160→
+   161→   161→  useEffect(() => writeLS(LS_DAY, day), [day]);
+   162→   162→  useEffect(() => writeLS(LS_PAUSE, pauseType), [pauseType]);
+   163→   163→
+   164→   164→  // Refs mirroring day/pause so the (once-created) scan callback always sees
+   165→   165→  // the latest value even if the user switches mid-session.
+   166→   166→  const dayRef = useRef(day);
+   167→   167→  const pauseTypeRef = useRef(pauseType);
+   168→   168→  useEffect(() => {
+   169→   169→    dayRef.current = day;
+   170→   170→  }, [day]);
+   171→   171→  useEffect(() => {
+   172→   172→    pauseTypeRef.current = pauseType;
+   173→   173→  }, [pauseType]);
+   174→   174→
+   175→   175→  // ----- Camera state ------------------------------------------------------
+   176→   176→  const html5Ref = useRef<Html5Qrcode | null>(null);
+   177→   177→  const [cameraReady, setCameraReady] = useState(false);
+   178→   178→  const [cameraError, setCameraError] = useState<string | null>(null);
+   179→   179→  const [cameras, setCameras] = useState<{ id: string; label: string }[]>([]);
+   180→   180→  const [cameraIdx, setCameraIdx] = useState(0);
+   181→   181→
+   182→   182→  // ----- Scan flow state ---------------------------------------------------
+   183→   183→  const scanningRef = useRef(true);
+   184→   184→  const lastScanRef = useRef<{ id: string; ts: number }>({ id: "", ts: 0 });
+   185→   185→  const inFlightRef = useRef(false);
+   186→   186→  const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+   187→   187→
+   188→   188→  const [overlay, setOverlay] = useState<OverlayState | null>(null);
+   189→   189→  const [recent, setRecent] = useState<ScanEntry[]>([]);
+   190→   190→  const [sessionCount, setSessionCount] = useState(0);
+   191→   191→
+   192→   192→  // ----- Pause / resume the camera whenever the overlay toggles -----------
+   193→   193→  useEffect(() => {
+   194→   194→    const inst = html5Ref.current;
+   195→   195→    if (!inst) return;
+   196→   196→    try {
+   197→   197→      if (overlay) inst.pause(true);
+   198→   198→      else inst.resume();
+   199→   199→    } catch {
+   200→   200→      /* ignore */
+   201→   201→    }
+   202→   202→  }, [overlay]);
+   203→   203→
+   204→   204→  // ----- recordPause: POST to the API, build overlay + recent entry -------
+   205→   205→  const recordPause = useCallback(async (participantId: string) => {
+   206→   206→    if (inFlightRef.current) return;
+   207→   207→    inFlightRef.current = true;
+   208→   208→    scanningRef.current = false;
+   209→   209→
+   210→   210→    const d = dayRef.current;
+   211→   211→    const p = pauseTypeRef.current;
+   212→   212→
+   213→   213→    // Show loading overlay immediately so the user sees feedback.
+   214→   214→    setOverlay({
+   215→   215→      state: "loading",
+   216→   216→      participantId,
+   217→   217→      day: d,
+   218→   218→      pauseType: p,
+   219→   219→    });
+   220→   220→
+   221→   221→    let result: OverlayState;
+   222→   222→    let status: ScanStatus;
+   223→   223→
+   224→   224→    try {
+   225→   225→      const res = await fetch("/api/sonafi/pause/record", {
+   226→   226→        method: "POST",
+   227→   227→        headers: { "Content-Type": "application/json" },
+   228→   228→        body: JSON.stringify({ participantId, day: d, pauseType: p }),
+   229→   229→      });
+   230→   230→      const data = (await res.json().catch(() => ({}))) as {
+   231→   231→        success?: boolean;
+   232→   232→        participant?: { id: string; name: string };
+   233→   233→        pause?: { timestamp: string };
+   234→   234→      };
+   235→   235→
+   236→   236→      if (res.ok && data?.success) {
+   237→   237→        result = {
+   238→   238→          state: "success",
+   239→   239→          participantId: data.participant?.id ?? participantId,
+   240→   240→          participantName: data.participant?.name,
+   241→   241→          day: d,
+   242→   242→          pauseType: p,
+   243→   243→          timestamp: data.pause?.timestamp,
+   244→   244→        };
+   245→   245→        status = "validated";
+   246→   246→        navigator.vibrate?.(120);
+   247→   247→      } else if (res.status === 409) {
+   248→   248→        result = {
+   249→   249→          state: "duplicate",
+   250→   250→          participantId: data.participant?.id ?? participantId,
+   251→   251→          participantName: data.participant?.name,
+   252→   252→          day: d,
+   253→   253→          pauseType: p,
+   254→   254→        };
+   255→   255→        status = "duplicate";
+   256→   256→        navigator.vibrate?.([60, 60, 60]);
+   257→   257→      } else if (res.status === 404) {
+   258→   258→        result = {
+   259→   259→          state: "unknown",
+   260→   260→          participantId,
+   261→   261→          day: d,
+   262→   262→          pauseType: p,
+   263→   263→        };
+   264→   264→        status = "unknown";
+   265→   265→        navigator.vibrate?.([60, 60, 60]);
+   266→   266→      } else {
+   267→   267→        result = { state: "error", participantId, day: d, pauseType: p };
+   268→   268→        status = "error";
+   269→   269→      }
+   270→   270→    } catch {
+   271→   271→      result = { state: "error", participantId, day: d, pauseType: p };
+   272→   272→      status = "error";
+   273→   273→    }
+   274→   274→
+   275→   275→    // Show the final result.
+   276→   276→    setOverlay(result);
+   277→   277→
+   278→   278→    // Push a recent-scans entry.
+   279→   279→    setRecent((prev) =>
+   280→   280→      [
+   281→   281→        {
+   282→   282→          id:
+   283→   283→            typeof crypto !== "undefined" && "randomUUID" in crypto
+   284→   284→              ? crypto.randomUUID()
+   285→   285→              : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+   286→   286→          participantId: result.participantId,
+   287→   287→          participantName: result.participantName,
+   288→   288→          day: d,
+   289→   289→          pauseType: p,
+   290→   290→          timestamp: result.timestamp ?? new Date().toISOString(),
+   291→   291→          status,
+   292→   292→        } as ScanEntry,
+   293→   293→        ...prev,
+   294→   294→      ].slice(0, MAX_RECENT),
+   295→   295→    );
+   296→   296→    setSessionCount((c) => c + 1);
+   297→   297→
+   298→   298→    // Dismiss the overlay and resume scanning after OVERLAY_MS.
+   299→   299→    if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+   300→   300→    resumeTimerRef.current = setTimeout(() => {
+   301→   301→      setOverlay(null);
+   302→   302→      scanningRef.current = true;
+   303→   303→      inFlightRef.current = false;
+   304→   304→    }, OVERLAY_MS);
+   305→   305→  }, []);
+   306→   306→
+   307→   307→  // ----- handleScan: the callback passed to html5-qrcode ------------------
+   308→   308→  const handleScan = useCallback(
+   309→   309→    (decoded: string) => {
+   310→   310→      if (!scanningRef.current) return;
+   311→   311→      if (inFlightRef.current) return;
+   312→   312→      const now = Date.now();
+   313→   313→      const last = lastScanRef.current;
+   314→   314→      if (last.id === decoded && now - last.ts < DEBOUNCE_MS) return;
+   315→   315→      lastScanRef.current = { id: decoded, ts: now };
+   316→   316→      void recordPause(decoded);
+   317→   317→    },
+   318→   318→    [recordPause],
+   319→   319→  );
+   320→   320→
+   321→   321→  // ----- startCamera: dynamic-import html5-qrcode, prefer back camera -----
+   322→   322→  const startCamera = useCallback(
+   323→   323→    async (preferredIdx?: number) => {
+   324→   324→      setCameraError(null);
+   325→   325→      setCameraReady(false);
+   326→   326→
+   327→   327→      try {
+   328→   328→        const { Html5Qrcode } = await import("html5-qrcode");
+   329→   329→
+   330→   330→        // Tear down any previous instance before starting again.
+   331→   331→        if (html5Ref.current) {
+   332→   332→          try {
+   333→   333→            if (html5Ref.current.isScanning) await html5Ref.current.stop();
+   334→   334→          } catch {
+   335→   335→            /* ignore */
+   336→   336→          }
+   337→   337→          try {
+   338→   338→            html5Ref.current.clear();
+   339→   339→          } catch {
+   340→   340→            /* ignore */
+   341→   341→          }
+   342→   342→          html5Ref.current = null;
+   343→   343→        }
+   344→   344→
+   345→   345→        const instance = new Html5Qrcode(QR_READER_ID, {
+   346→   346→          verbose: false,
+   347→   347→        });
+   348→   348→        html5Ref.current = instance;
+   349→   349→
+   350→   350→        // Enumerate cameras (best-effort — falls back to facingMode).
+   351→   351→        let cams: { id: string; label: string }[] = [];
+   352→   352→        try {
+   353→   353→          cams = await Html5Qrcode.getCameras();
+   354→   354→          if (cams.length > 0) setCameras(cams);
+   355→   355→        } catch {
+   356→   356→          /* ignore — will use facingMode */
+   357→   357→        }
+   358→   358→
+   359→   359→        const idx =
+   360→   360→          preferredIdx != null ? preferredIdx : Math.min(cameraIdx, cams.length);
+   361→   361→        const chosen = cams[idx];
+   362→   362→
+   363→   363→        const config = {
+   364→   364→          fps: 10,
+   365→   365→          qrbox: (vw: number, vh: number) => {
+   366→   366→            const minEdge = Math.min(vw, vh);
+   367→   367→            const size = Math.max(160, Math.floor(minEdge * 0.7));
+   368→   368→            return { width: size, height: size };
+   369→   369→          },
+   370→   370→        };
+   371→   371→
+   372→   372→        const startConfig = chosen
+   373→   373→          ? { deviceId: { exact: chosen.id } }
+   374→   374→          : { facingMode: { ideal: "environment" as const } };
+   375→   375→
+   376→   376→        await instance.start(startConfig, config, handleScan, () => {
+   377→   377→          /* per-frame decode errors are noisy — ignore */
+   378→   378→        });
+   379→   379→
+   380→   380→        setCameraReady(true);
+   381→   381→      } catch (err) {
+   382→   382→        setCameraError(friendlyCameraError(err));
+   383→   383→        setCameraReady(false);
+   384→   384→      }
+   385→   385→    },
+   386→   386→    [cameraIdx, handleScan],
+   387→   387→  );
+   388→   388→
+   389→   389→  // ----- mount: auto-start camera; unmount: stop + clear -------------------
+   390→   390→  useEffect(() => {
+   391→   391→    void startCamera();
+   392→   392→    return () => {
+   393→   393→      if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+   394→   394→      const inst = html5Ref.current;
+   395→   395→      html5Ref.current = null;
+   396→   396→      scanningRef.current = false;
+   397→   397→      inFlightRef.current = false;
+   398→   398→      void (async () => {
+   399→   399→        if (!inst) return;
+   400→   400→        try {
+   401→   401→          if (inst.isScanning) await inst.stop();
+   402→   402→        } catch {
+   403→   403→          /* ignore */
+   404→   404→        }
+   405→   405→        try {
+   406→   406→          inst.clear();
+   407→   407→        } catch {
+   408→   408→          /* ignore */
+   409→   409→        }
+   410→   410→      })();
+   411→   411→    };
+   412→   412→    // We deliberately start only once on mount — startCamera is captured at
+   413→   413→    // first render, which is exactly what we want (initial camera).
+   414→   414→  }, []);
+   415→   415→
+   416→   416→  // ----- cycleCamera: switch to next available camera ---------------------
+   417→   417→  const cycleCamera = useCallback(async () => {
+   418→   418→    if (cameras.length < 2) return;
+   419→   419→    const next = (cameraIdx + 1) % cameras.length;
+   420→   420→    setCameraIdx(next);
+   421→   421→    await startCamera(next);
+   422→   422→  }, [cameras.length, cameraIdx, startCamera]);
+   423→   423→
+   424→   424→  // -----------------------------------------------------------------------
+   425→   425→  // Render
+   426→   426→  // -----------------------------------------------------------------------
+   427→   427→  return (
+   428→   428→    <div className="flex flex-col gap-5">
+   429→   429→      {/* Day selector */}
+   430→   430→      <section aria-label="Choix du jour">
+   431→   431→        <h2 className="mb-2 text-sm font-semibold text-muted-foreground">Jour</h2>
+   432→   432→        <div className="grid grid-cols-3 gap-2">
+   433→   433→          {DAYS.map((d) => {
+   434→   434→            const active = d === day;
+   435→   435→            return (
+   436→   436→              <button
+   437→   437→                key={d}
+   438→   438→                type="button"
+   439→   439→                onClick={() => setDay(d)}
+   440→   440→                aria-pressed={active}
+   441→   441→                className={cn(
+   442→   442→                  "flex h-12 items-center justify-center rounded-xl border text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2",
+   443→   443→                  active
+   444→   444→                    ? "border-emerald-500 bg-emerald-500 text-white shadow-sm"
+   445→   445→                    : "border-border bg-background text-foreground hover:bg-emerald-50",
+   446→   446→                )}
+   447→   447→              >
+   448→   448→                {DAY_LABELS[d]}
+   449→   449→              </button>
+   450→   450→            );
+   451→   451→          })}
+   452→   452→        </div>
+   453→   453→      </section>
+   454→   454→
+   455→   455→      {/* Pause selector */}
+   456→   456→      <section aria-label="Choix de la pause">
+   457→   457→        <h2 className="mb-2 text-sm font-semibold text-muted-foreground">Pause</h2>
+   458→   458→        <div className="grid grid-cols-3 gap-2">
+   459→   459→          {PAUSE_TYPES.map((p) => {
+   460→   460→            const meta = PAUSE_META[p];
+   461→   461→            const active = p === pauseType;
+   462→   462→            return (
+   463→   463→              <button
+   464→   464→                key={p}
+   465→   465→                type="button"
+   466→   466→                onClick={() => setPauseType(p)}
+   467→   467→                aria-pressed={active}
+   468→   468→                className={cn(
+   469→   469→                  "flex h-16 flex-col items-center justify-center gap-1 rounded-xl border text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+   470→   470→                  active
+   471→   471→                    ? cn(meta.soft, "ring-2", meta.ring, "focus-visible:ring-emerald-400")
+   472→   472→                    : "border-border bg-background text-foreground hover:bg-accent focus-visible:ring-emerald-400",
+   473→   473→                )}
+   474→   474→              >
+   475→   475→                <span className="text-2xl leading-none" aria-hidden>
+   476→   476→                  {meta.emoji}
+   477→   477→                </span>
+   478→   478→                <span className="leading-tight">
+   479→   479→                  {meta.label.replace(/^Pause\s+/, "")}
+   480→   480→                </span>
+   481→   481→              </button>
+   482→   482→            );
+   483→   483→          })}
+   484→   484→        </div>
+   485→   485→      </section>
+   486→   486→
+   487→   487→      {/* Camera */}
+   488→   488→      <section aria-label="Caméra de scan">
+   489→   489→        <div className="mb-2 flex items-center justify-between gap-3">
+   490→   490→          <h2 className="text-sm font-semibold text-muted-foreground">Caméra</h2>
+   491→   491→          <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+   492→   492→            <ScanLine className="h-3.5 w-3.5" />
+   493→   493→            {sessionCount} scan{sessionCount === 1 ? "" : "s"} cette session
+   494→   494→          </span>
+   495→   495→        </div>
+   496→   496→
+   497→   497→        <Card className="overflow-hidden border-emerald-100 py-0">
+   498→   498→          <CardContent className="p-3 sm:p-4">
+   499→   499→            <div className="relative mx-auto aspect-square w-full max-w-md overflow-hidden rounded-2xl border border-border bg-slate-900">
+   500→   500→              {/* html5-qrcode injects the <video> here */}
+   501→   501→              <div
+   502→   502→                id={QR_READER_ID}
+   503→   503→                className="absolute inset-0 [&>video]:h-full [&>video]:w-full [&>video]:object-cover [&>video]:bg-slate-900"
+   504→   504→              />
+   505→   505→
+   506→   506→              {/* Scan reticle overlay */}
+   507→   507→              {cameraReady && !cameraError && (
+   508→   508→                <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+   509→   509→                  <div className="relative h-[62%] w-[62%]">
+   510→   510→                    <span className="absolute left-0 top-0 h-8 w-8 rounded-tl-lg border-l-4 border-t-4 border-white/90" />
+   511→   511→                    <span className="absolute right-0 top-0 h-8 w-8 rounded-tr-lg border-r-4 border-t-4 border-white/90" />
+   512→   512→                    <span className="absolute bottom-0 left-0 h-8 w-8 rounded-bl-lg border-b-4 border-l-4 border-white/90" />
+   513→   513→                    <span className="absolute bottom-0 right-0 h-8 w-8 rounded-br-lg border-b-4 border-r-4 border-white/90" />
+   514→   514→                    <motion.span
+   515→   515→                      className="absolute inset-x-4 top-1/2 h-0.5 rounded-full bg-emerald-400 shadow-[0_0_8px_2px_rgba(16,185,129,0.65)]"
+   516→   516→                      animate={{ y: [-90, 90, -90] }}
+   517→   517→                      transition={{
+   518→   518→                        duration: 2.4,
+   519→   519→                        repeat: Infinity,
+   520→   520→                        ease: "easeInOut",
+   521→   521→                      }}
+   522→   522→                    />
+   523→   523→                  </div>
+   524→   524→                </div>
+   525→   525→              )}
+   526→   526→
+   527→   527→              {/* Initialising spinner */}
+   528→   528→              {!cameraReady && !cameraError && (
+   529→   529→                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white/90">
+   530→   530→                  <Loader2 className="h-8 w-8 animate-spin" />
+   531→   531→                  <p className="text-sm">Activation de la caméra…</p>
+   532→   532→                </div>
+   533→   533→              )}
+   534→   534→
+   535→   535→              {/* Camera error card */}
+   536→   536→              {cameraError && (
+   537→   537→                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-900/95 p-6 text-center text-white">
+   538→   538→                  <AlertTriangle className="h-10 w-10 text-rose-300" />
+   539→   539→                  <p className="max-w-xs text-sm leading-relaxed text-white/90">
+   540→   540→                    {cameraError}
+   541→   541→                  </p>
+   542→   542→                  <Button
+   543→   543→                    type="button"
+   544→   544→                    size="sm"
+   545→   545→                    onClick={() => void startCamera()}
+   546→   546→                    className="bg-emerald-500 text-white hover:bg-emerald-600"
+   547→   547→                  >
+   548→   548→                    <RefreshCw className="h-4 w-4" />
+   549→   549→                    Réessayer
+   550→   550→                  </Button>
+   551→   551→                </div>
+   552→   552→              )}
+   553→   553→
+   554→   554→              {/* Camera switch */}
+   555→   555→              {cameraReady && cameras.length > 1 && (
+   556→   556→                <Button
+   557→   557→                  type="button"
+   558→   558→                  size="sm"
+   559→   559→                  variant="secondary"
+   560→   560→                  onClick={() => void cycleCamera()}
+   561→   561→                  className="absolute right-2 top-2 z-10 h-8 gap-1 bg-black/55 text-white backdrop-blur hover:bg-black/70"
+   562→   562→                >
+   563→   563→                  <RotateCcw className="h-3.5 w-3.5" />
+   564→   564→                  Caméra
+   565→   565→                </Button>
+   566→   566→              )}
+   567→   567→            </div>
+   568→   568→
+   569→   569→            {/* Status row */}
+   570→   570→            <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+   571→   571→              <span className="inline-flex items-center gap-1.5">
+   572→   572→                <span
+   573→   573→                  className={cn(
+   574→   574→                    "h-2 w-2 rounded-full",
+   575→   575→                    cameraReady
+   576→   576→                      ? "animate-pulse bg-emerald-500"
+   577→   577→                      : "bg-muted-foreground/40",
+   578→   578→                  )}
+   579→   579→                />
+   580→   580→                {cameraReady
+   581→   581→                  ? "Caméra active"
+   582→   582→                  : cameraError
+   583→   583→                    ? "Caméra indisponible"
+   584→   584→                    : "Démarrage…"}
+   585→   585→              </span>
+   586→   586→              <span className="inline-flex items-center gap-1.5">
+   587→   587→                {PAUSE_META[pauseType].emoji} {PAUSE_META[pauseType].label} ·{" "}
+   588→   588→                {DAY_LABELS[day]}
+   589→   589→              </span>
+   590→   590→            </div>
+   591→   591→          </CardContent>
+   592→   592→        </Card>
+   593→   593→      </section>
+   594→   594→
+   595→   595→      {/* Recent scans */}
+   596→   596→      <section aria-label="Scans récents">
+   597→   597→        <div className="mb-2 flex items-center justify-between">
+   598→   598→          <h2 className="text-sm font-semibold text-muted-foreground">
+   599→   599→            Scans récents
+   600→   600→          </h2>
+   601→   601→          <span className="text-xs text-muted-foreground">
+   602→   602→            {recent.length}/{MAX_RECENT}
+   603→   603→          </span>
+   604→   604→        </div>
+   605→   605→
+   606→   606→        {recent.length === 0 ? (
+   607→   607→          <Card className="border-dashed bg-muted/30 py-0">
+   608→   608→            <CardContent className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+   609→   609→              Aucun scan pour le moment
+   610→   610→            </CardContent>
+   611→   611→          </Card>
+   612→   612→        ) : (
+   613→   613→          <div
+   614→   614→            className="max-h-72 overflow-y-auto pr-1
+   615→   615→              [&::-webkit-scrollbar]:w-2
+   616→   616→              [&::-webkit-scrollbar-thumb]:rounded-full
+   617→   617→              [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30
+   618→   618→              [&::-webkit-scrollbar-track]:bg-transparent"
+   619→   619→          >
+   620→   620→            <ul className="flex flex-col gap-2">
+   621→   621→              {recent.map((e) => (
+   622→   622→                <li key={e.id}>
+   623→   623→                  <Card className="border-border/70 py-0">
+   624→   624→                    <CardContent className="flex items-center gap-3 px-3 py-2.5">
+   625→   625→                      <span
+   626→   626→                        className={cn(
+   627→   627→                          "h-2.5 w-2.5 shrink-0 rounded-full",
+   628→   628→                          PAUSE_DOT[e.pauseType],
+   629→   629→                        )}
+   630→   630→                        aria-hidden
+   631→   631→                      />
+   632→   632→                      <div className="flex min-w-0 flex-1 flex-col">
+   633→   633→                        <div className="flex items-baseline gap-2">
+   634→   634→                          <span className="truncate text-sm font-semibold">
+   635→   635→                            {e.participantName ?? "Badge non reconnu"}
+   636→   636→                          </span>
+   637→   637→                          <span className="shrink-0 font-mono text-xs text-muted-foreground">
+   638→   638→                            {e.participantId}
+   639→   639→                          </span>
+   640→   640→                        </div>
+   641→   641→                        <div className="truncate text-xs text-muted-foreground">
+   642→   642→                          {DAY_LABELS[e.day]} · {PAUSE_META[e.pauseType].label} ·{" "}
+   643→   643→                          {formatTimestamp(e.timestamp)}
+   644→   644→                        </div>
+   645→   645→                      </div>
+   646→   646→                      <StatusPill status={e.status} />
+   647→   647→                    </CardContent>
+   648→   648→                  </Card>
+   649→   649→                </li>
+   650→   650→              ))}
+   651→   651→            </ul>
+   652→   652→          </div>
+   653→   653→        )}
+   654→   654→      </section>
+   655→   655→
+   656→   656→      {/* Full-screen result overlay */}
+   657→   657→      <ResultOverlay overlay={overlay} />
+   658→   658→    </div>
+   659→   659→  );
+   660→   660→}
+   661→   661→
+   662→   662→export default ScanTab;
+   663→   663→
+   664→   664→// ---------------------------------------------------------------------------
+   665→   665→// StatusPill — small coloured pill for the recent-scans list
+   666→   666→// ---------------------------------------------------------------------------
+   667→   667→
+   668→   668→function StatusPill({ status }: { status: ScanStatus }) {
+   669→   669→  const map: Record<ScanStatus, { label: string; className: string }> = {
+   670→   670→    validated: {
+   671→   671→      label: "Validé",
+   672→   672→      className: "border-emerald-200 bg-emerald-100 text-emerald-800",
+   673→   673→    },
+   674→   674→    duplicate: {
+   675→   675→      label: "Doublon",
+   676→   676→      className: "border-rose-200 bg-rose-100 text-rose-800",
+   677→   677→    },
+   678→   678→    unknown: {
+   679→   679→      label: "Inconnu",
+   680→   680→      className: "border-amber-200 bg-amber-100 text-amber-800",
+   681→   681→    },
+   682→   682→    error: {
+   683→   683→      label: "Erreur",
+   684→   684→      className: "border-slate-200 bg-slate-100 text-slate-700",
+   685→   685→    },
+   686→   686→  };
+   687→   687→  const m = map[status];
+   688→   688→  return (
+   689→   689→    <span
+   690→   690→      className={cn(
+   691→   691→        "inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-xs font-medium",
+   692→   692→        m.className,
+   693→   693→      )}
+   694→   694→    >
+   695→   695→      {m.label}
+   696→   696→    </span>
+   697→   697→  );
+   698→   698→}
+   699→   699→
+   700→   700→// ---------------------------------------------------------------------------
+   701→   701→// ResultOverlay — full-screen verdict shown after each scan
+   702→   702→// ---------------------------------------------------------------------------
+   703→   703→
+   704→   704→function ResultOverlay({ overlay }: { overlay: OverlayState | null }) {
+   705→   705→  const theme: OverlayTheme | null = (() => {
+   706→   706→    if (!overlay) return null;
+   707→   707→    const meta = `${PAUSE_META[overlay.pauseType].emoji} ${PAUSE_META[overlay.pauseType].label} · ${DAY_LABELS[overlay.day]}`;
+   708→   708→    switch (overlay.state) {
+   709→   709→      case "loading":
+   710→   710→        return {
+   711→   711→          bg: "bg-slate-900/95",
+   712→   712→          icon: <Loader2 className="h-16 w-16 animate-spin text-white" />,
+   713→   713→          headline: "Vérification…",
+   714→   714→          sub: overlay.participantId,
+   715→   715→        };
+   716→   716→      case "success":
+   717→   717→        return {
+   718→   718→          bg: "bg-emerald-600",
+   719→   719→          icon: <Check className="h-20 w-20 text-white" strokeWidth={3} />,
+   720→   720→          headline: "Pause validée",
+   721→   721→          sub: overlay.participantName ?? "Participant",
+   722→   722→          meta,
+   723→   723→        };
+   724→   724→      case "duplicate":
+   725→   725→        return {
+   726→   726→          bg: "bg-rose-600",
+   727→   727→          icon: <X className="h-20 w-20 text-white" strokeWidth={3} />,
+   728→   728→          headline: "Déjà servi(e)",
+   729→   729→          sub: overlay.participantName ?? overlay.participantId,
+   730→   730→          meta,
+   731→   731→        };
+   732→   732→      case "unknown":
+   733→   733→        return {
+   734→   734→          bg: "bg-amber-500",
+   735→   735→          icon: <AlertTriangle className="h-20 w-20 text-white" strokeWidth={2.5} />,
+   736→   736→          headline: "Badge non reconnu",
+   737→   737→          sub: overlay.participantId,
+   738→   738→        };
+   739→   739→      case "error":
+   740→   740→        return {
+   741→   741→          bg: "bg-slate-700",
+   742→   742→          icon: <WifiOff className="h-20 w-20 text-white" strokeWidth={2.5} />,
+   743→   743→          headline: "Erreur, réessayez",
+   744→   744→          sub: "Vérifiez votre connexion",
+   745→   745→        };
+   746→   746→    }
+   747→   747→  })();
+   748→   748→
+   749→   749→  return (
+   750→   750→    <AnimatePresence>
+   751→   751→      {overlay && theme && (
+   752→   752→        <motion.div
+   753→   753→          initial={{ opacity: 0 }}
+   754→   754→          animate={{ opacity: 1 }}
+   755→   755→          exit={{ opacity: 0 }}
+   756→   756→          transition={{ duration: 0.18 }}
+   757→   757→          className={cn(
+   758→   758→            "fixed inset-0 z-50 flex flex-col items-center justify-center p-8 text-center text-white",
+   759→   759→            theme.bg,
+   760→   760→          )}
+   761→   761→          aria-live="assertive"
+   762→   762→          role="status"
+   763→   763→        >
+   764→   764→          <motion.div
+   765→   765→            key={overlay.state}
+   766→   766→            initial={{ scale: 0.5, opacity: 0 }}
+   767→   767→            animate={{ scale: 1, opacity: 1 }}
+   768→   768→            transition={{ type: "spring", stiffness: 320, damping: 22 }}
+   769→   769→            className="flex flex-col items-center gap-5"
+   770→   770→          >
+   771→   771→            {theme.icon}
+   772→   772→            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+   773→   773→              {theme.headline}
+   774→   774→            </h2>
+   775→   775→            {theme.sub && (
+   776→   776→              <p className="max-w-md break-words text-xl font-medium opacity-95">
+   777→   777→                {theme.sub}
+   778→   778→              </p>
+   779→   779→            )}
+   780→   780→            {theme.meta && <p className="text-lg opacity-90">{theme.meta}</p>}
+   781→   781→          </motion.div>
+   782→   782→        </motion.div>
+   783→   783→      )}
+   784→   784→    </AnimatePresence>
+   785→   785→  );
+   786→   786→}
+   787→   787→
