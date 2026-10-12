@@ -177,10 +177,10 @@ export function AdminDashboard({
       className="mx-auto flex min-h-screen max-w-md flex-col"
       style={{ backgroundColor: PURPLE_BG, color: PURPLE_TEXT, fontFamily: "var(--font-jakarta), system-ui, sans-serif" }}
     >
-      {/* ---- Purple header ---- */}
+      {/* ---- Navy header ---- */}
       <div
-        className="flex flex-col gap-3.5 px-5 pb-6 pt-5 text-white"
-        style={{ backgroundColor: PURPLE_DEEP, borderRadius: "0 0 28px 28px" }}
+        className="flex flex-col gap-3 px-5 pb-5 pt-safe safe-x text-white"
+        style={{ backgroundColor: PURPLE_DEEP, borderRadius: "0 0 24px 24px" }}
       >
         <div className="flex items-center justify-between">
           <button
@@ -188,31 +188,32 @@ export function AdminDashboard({
             onClick={onGoHome}
             aria-label="Retour à l'accueil"
             className="flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-white/25"
-            style={{ background: "rgba(255,255,255,0.18)" }}
+            style={{ background: "rgba(255,255,255,0.28)" }}
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
           <span
             className="rounded-full px-3 py-1.5 text-sm font-bold"
-            style={{ background: "rgba(255,255,255,0.18)" }}
+            style={{ background: "rgba(255,255,255,0.28)" }}
           >
             Gestionnaire
           </span>
         </div>
         <div className="flex flex-col gap-0.5">
-          <h1 className="text-2xl font-extrabold tracking-tight">Espace gestionnaire</h1>
-          <p className="text-[15px]" style={{ color: "rgba(255,255,255,0.88)" }}>
+          <h1 className="text-xl font-extrabold tracking-tight">Espace gestionnaire</h1>
+          <p className="text-[14px]" style={{ color: "rgba(255,255,255,0.88)" }}>
             Suivi en direct du sommet
           </p>
         </div>
       </div>
 
-      {/* ---- Body ---- */}
-      <div className="flex flex-col gap-4 px-5 pt-5">
+      {/* ---- Body (scrollable so all content is reachable on mobile) ---- */}
+      <div className="flex-1 overflow-y-auto">
+      <div className="flex flex-col gap-4 px-5 pt-5 pb-safe">
         {/* Day selector — admin programs the current day (shared with all devices) */}
         <div>
-          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide" style={{ color: PURPLE_MUTED }}>
-            Jour courant · programmé par l'admin
+          <p className="mb-1.5 text-[13px] font-medium" style={{ color: PURPLE_MUTED }}>
+            Jour courant — programmé par l'admin
           </p>
           <div
             className="grid grid-cols-3 gap-1 p-1"
@@ -324,20 +325,23 @@ export function AdminDashboard({
           />
         </div>
 
-        {/* Live pause status */}
-        <div
-          className="flex items-center gap-2.5 rounded-2xl px-4 py-3"
-          style={{ background: "#FFFFFF", border: `1px solid ${PURPLE_CARD_BORDER}` }}
-        >
-          <Clock className="h-4 w-4 shrink-0" style={{ color: PURPLE_MUTED }} />
-          <span className="text-[13px]" style={{ color: PURPLE_MUTED }}>
-            Pause active :{" "}
-            <span className="font-semibold" style={{ color: PURPLE_TEXT }}>
-              {pause?.pauseType === "cafe" ? "café" : pause?.pauseType === "dejeuner" ? "déjeuner" : "—"}
-            </span>{" "}
-            ({pause?.source === "override" ? "forcée par l'admin" : "automatique"})
-          </span>
-        </div>
+        {/* Live pause status — hidden when an override bar is shown above */}
+        {pause?.source !== "override" && (
+          <div
+            className="flex items-center gap-2.5 rounded-2xl px-4 py-3"
+            style={{ background: "#FFFFFF", border: `1px solid ${PURPLE_CARD_BORDER}` }}
+          >
+            <Clock className="h-4 w-4 shrink-0" style={{ color: PURPLE_MUTED }} />
+            <span className="text-[13px]" style={{ color: PURPLE_MUTED }}>
+              Pause active :{" "}
+              <span className="font-semibold" style={{ color: PURPLE_TEXT }}>
+                {pause?.pauseType === "cafe" ? "café" : pause?.pauseType === "dejeuner" ? "déjeuner" : pause?.pauseType === "jeux" ? "jeux" : "—"}
+              </span>{" "}
+              (automatique)
+            </span>
+          </div>
+        )}
+      </div>
       </div>
     </div>
   );

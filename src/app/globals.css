@@ -118,5 +118,32 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Use the full viewport including behind the notch / home indicator. */
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* ---- Safe-area utilities (notch / home indicator on iOS) ----------------
+ * Usage: add `safe-top` / `safe-bottom` / `safe-x` classes to headers,
+ * footers, and sticky bars so content isn't hidden behind the notch or the
+ * home indicator.
+ */
+@layer utilities {
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .safe-x {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  .pt-safe {
+    padding-top: calc(env(safe-area-inset-top) + 1.25rem);
+  }
+  .pb-safe {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 1.25rem);
   }
 }

@@ -425,14 +425,14 @@ export function VerificationView() {
   // -----------------------------------------------------------------------
   return (
     <div
-      className="mx-auto w-full max-w-md"
+      className="mx-auto flex min-h-screen w-full max-w-md flex-col"
       style={{ backgroundColor: C.pageBg }}
     >
       {/* ---------------------------------------------------------------
           Header block — teal, rounded bottom corners
          --------------------------------------------------------------- */}
       <header
-        className="px-4 pb-6 pt-4 sm:px-5 sm:pt-5"
+        className="px-4 pb-4 pt-safe sm:px-5"
         style={{
           backgroundColor: C.verification,
           borderBottomLeftRadius: R.headerBottom,
@@ -463,30 +463,28 @@ export function VerificationView() {
           </span>
         </div>
 
-        {/* Title + subtitle */}
-        <div className="mt-4">
+        {/* Title only — the "Entrées du jour" subtitle was dropped
+            because it duplicated the progress-card label "Entrées
+            aujourd'hui" (Task 14-b §7). */}
+        <div className="mt-3">
           <h1 className="text-2xl font-bold leading-tight text-white sm:text-3xl">
             Vérification
           </h1>
-          <p className="mt-0.5 text-sm font-normal text-white/90 sm:text-base">
-            Entrées du jour
-          </p>
         </div>
       </header>
 
       {/* ---------------------------------------------------------------
-          Body
+          Body — flex-1 grows to push the manual-ID button to the bottom.
          --------------------------------------------------------------- */}
-      <div className="space-y-4 px-4 py-4 sm:px-5">
-        {/* Scanner viewfinder card — dark, full width, ~40% viewport height */}
+      <div className="flex flex-1 flex-col gap-4 px-4 pt-4 sm:px-5">
+        {/* Scanner viewfinder card — dark, full width, dominant on screen. */}
         <div
           className="relative w-full overflow-hidden"
           style={{
             backgroundColor: C.viewfinder,
             borderRadius: 20,
-            height: "40vh",
+            height: "min(55vh, 460px)",
             minHeight: 280,
-            maxHeight: 420,
           }}
           aria-label="Caméra de scan"
         >
@@ -525,9 +523,9 @@ export function VerificationView() {
               </p>
               <Button
                 type="button"
-                size="sm"
+                size="default"
                 onClick={() => void startCamera()}
-                className="bg-white/15 text-white backdrop-blur hover:bg-white/25"
+                className="h-12 bg-white/15 px-5 py-2.5 text-base text-white backdrop-blur hover:bg-white/25"
                 style={{ borderRadius: 999 }}
               >
                 <RefreshCw className="h-4 w-4" />
@@ -630,28 +628,33 @@ export function VerificationView() {
           </div>
         </div>
 
-        {/* Outlined button — manual ID entry */}
-        <button
-          type="button"
-          onClick={() => {
-            setManualError(null);
-            setManualId("");
-            setManualOpen(true);
-          }}
-          className="flex h-12 w-full items-center justify-center gap-2 bg-white text-sm font-semibold transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:text-base"
-          style={{
-            borderRadius: R.pill,
-            border: `2px solid ${C.verification}`,
-            color: C.verification,
-          }}
-        >
-          <Keyboard
-            className="h-5 w-5"
-            style={{ color: C.verification }}
-            strokeWidth={2.2}
-          />
-          Saisir l&rsquo;ID à la main
-        </button>
+        {/* Outlined button — manual ID entry.
+            Pinned to the bottom of the screen with mt-auto (so it never
+            floats mid-screen on tall devices) and pb-safe (so it isn't
+            hidden behind the iOS home indicator). */}
+        <div className="mt-auto pb-safe">
+          <button
+            type="button"
+            onClick={() => {
+              setManualError(null);
+              setManualId("");
+              setManualOpen(true);
+            }}
+            className="flex h-12 w-full items-center justify-center gap-2 bg-white text-sm font-semibold transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:text-base"
+            style={{
+              borderRadius: R.pill,
+              border: `2px solid ${C.verification}`,
+              color: C.verification,
+            }}
+          >
+            <Keyboard
+              className="h-5 w-5"
+              style={{ color: C.verification }}
+              strokeWidth={2.2}
+            />
+            Saisir l&rsquo;ID à la main
+          </button>
+        </div>
       </div>
 
       {/* ---------------------------------------------------------------

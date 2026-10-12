@@ -103,7 +103,7 @@ export function LandingPage({
     >
       {/* ---------------- Header block (navy, rounded bottom) ---------------- */}
       <header
-        className="px-5 pb-8 pt-6 sm:pt-8"
+        className="px-5 pb-6 pt-safe safe-x"
         style={{
           backgroundColor: C.gestionnaire,
           borderBottomLeftRadius: R.headerBottom,
@@ -128,8 +128,8 @@ export function LandingPage({
 
         {/* Title */}
         <h1
-          className="mt-5 font-bold leading-tight tracking-tight"
-          style={{ color: "#FFFFFF", fontSize: 34 }}
+          className="mt-4 font-bold leading-tight tracking-tight"
+          style={{ color: "#FFFFFF", fontSize: 32 }}
         >
           Sonafi
         </h1>
@@ -137,7 +137,7 @@ export function LandingPage({
         {/* Subtitle */}
         <p
           className="mt-1 font-normal leading-snug"
-          style={{ color: "#FFFFFF", fontSize: 17 }}
+          style={{ color: "#FFFFFF", fontSize: 16 }}
         >
           Sommet national de la jeune fille
         </p>
@@ -145,30 +145,30 @@ export function LandingPage({
         {/* Two pill badges */}
         <div className="mt-4 flex flex-wrap gap-2.5">
           <span
-            className="inline-flex items-center font-semibold"
+            className="inline-flex min-h-[36px] items-center font-semibold"
             style={{
-              backgroundColor: C.headerTint,
+              backgroundColor: "rgba(255,255,255,0.28)",
               color: "#FFFFFF",
               borderRadius: R.pill,
-              paddingTop: 6,
-              paddingBottom: 6,
-              paddingLeft: 12,
-              paddingRight: 12,
+              paddingTop: 8,
+              paddingBottom: 8,
+              paddingLeft: 14,
+              paddingRight: 14,
               fontSize: 14,
             }}
           >
             3 jours
           </span>
           <span
-            className="inline-flex items-center font-semibold"
+            className="inline-flex min-h-[36px] items-center font-semibold"
             style={{
-              backgroundColor: C.headerTint,
+              backgroundColor: "rgba(255,255,255,0.28)",
               color: "#FFFFFF",
               borderRadius: R.pill,
-              paddingTop: 6,
-              paddingBottom: 6,
-              paddingLeft: 12,
-              paddingRight: 12,
+              paddingTop: 8,
+              paddingBottom: 8,
+              paddingLeft: 14,
+              paddingRight: 14,
               fontSize: 14,
             }}
           >
@@ -182,7 +182,7 @@ export function LandingPage({
         variants={container}
         initial="hidden"
         animate="show"
-        className="flex flex-1 flex-col px-5 py-6"
+        className="flex flex-col px-5 pt-6"
       >
         <h2
           className="font-semibold tracking-tight"
@@ -254,7 +254,7 @@ export function LandingPage({
       </motion.main>
 
       {/* ---------------- Footer ---------------- */}
-      <footer className="px-5 pb-6 pt-2 text-center">
+      <footer className="mt-auto px-5 pb-safe pt-2 text-center">
         <p style={{ color: C.textSecondary, fontSize: 13 }}>
           Accès réservé aux équipes du sommet
         </p>

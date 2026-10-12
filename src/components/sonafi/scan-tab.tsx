@@ -6,25 +6,25 @@
  * but with the event's orange (C.restauration) header colour instead of the
  * mockup's magenta.
  *
- * Layout
+ * Layout  (scrollable body — fits within 100dvh)
  * ┌──────────────────────────────────────┐
- * │ Orange header (rounded bottom 24px)  │
- * │   ◀ back           [Jour 1] pill    │
+ * │ Orange header (pt-safe, rounded 24)   │
+ * │   ◀ back           [Jour 1] pill     │
  * │   Restauration                       │
  * │   Scan des pauses                    │
  * ├──────────────────────────────────────┤
- * │  Pause en cours                       │
- * │  ┌ Pause indicator card ┐             │
+ * │  ┌ Pause indicator card ┐   (no h2)   │
  * │  │ Café · Auto · 8h-11h │             │
  * │  └────────────────────┘             │
- * │  ┌ Dark viewfinder card ┐            │
+ * │  ┌ Dark viewfinder card ┐  (≤50vh)   │
  * │  │ [camera + corner brackets]        │
- * │  │ Placez le badge…                 │
+ * │  │ Placez le badge…                   │
  * │  └────────────────────┘             │
- * │  ┌ Status card ┐                    │
- * │  │ En attente d'un badge            │
- * │  └────────────┘                    │
+ * │  ┌ Status card ┐                     │
+ * │  │ En attente d'un badge             │
+ * │  └────────────┘                     │
  * │  Cafés servis aujourd'hui   X / 500 │
+ * │  (pb-safe — clears home indicator)   │
  * └──────────────────────────────────────┘
  *
  * The pause type comes from `useEffectivePause` (auto by clock, or admin
@@ -390,10 +390,10 @@ export function ScanTab() {
   // Render
   // -----------------------------------------------------------------------
   return (
-    <div className="flex flex-col">
-      {/* ===== Orange header (rounded bottom corners) ===== */}
+    <div className="flex h-[100dvh] flex-col">
+      {/* ===== Orange header (rounded bottom corners, pt-safe clears the notch) ===== */}
       <header
-        className="rounded-b-3xl px-5 pb-6 pt-5 text-white shadow-sm"
+        className="safe-x rounded-b-3xl px-5 pb-4 pt-safe text-white shadow-sm"
         style={{
           backgroundColor: C.restauration,
           borderBottomLeftRadius: R.headerBottom,
@@ -429,36 +429,30 @@ export function ScanTab() {
         </p>
       </header>
 
-      {/* ===== Body (20px padding) ===== */}
-      <div className="flex flex-col gap-4 p-5">
-        {/* Pause en cours — label + indicator card */}
-        <section aria-label="Pause en cours">
-          <h2
-            className="mb-2 text-[15px] font-medium"
-            style={{ color: C.textSecondary }}
-          >
-            Pause en cours
-          </h2>
+      {/* ===== Body (scrollable so content is never clipped) ===== */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="flex flex-col gap-4 px-5 pt-5">
+          {/* Pause indicator card — no separate heading (card is self-explanatory) */}
           <PauseIndicatorCard pause={effective} />
-        </section>
 
-        {/* Camera viewfinder card */}
-        <section aria-label="Caméra de scan">
-          <ViewfinderCard
-            cameraReady={cameraReady}
-            cameraError={cameraError}
-            onRetry={() => void startCamera()}
+          {/* Camera viewfinder card */}
+          <section aria-label="Caméra de scan">
+            <ViewfinderCard
+              cameraReady={cameraReady}
+              cameraError={cameraError}
+              onRetry={() => void startCamera()}
+            />
+          </section>
+
+          {/* Status card */}
+          <StatusCard pauseType={pauseType} overlay={overlay} />
+
+          {/* Stats line — pb-safe clears the home indicator */}
+          <StatsLine
+            cafeCount={cafeCount}
+            totalParticipants={totalParticipants}
           />
-        </section>
-
-        {/* Status card */}
-        <StatusCard pauseType={pauseType} overlay={overlay} />
-
-        {/* Stats line */}
-        <StatsLine
-          cafeCount={cafeCount}
-          totalParticipants={totalParticipants}
-        />
+        </div>
       </div>
 
       {/* ===== Full-screen result overlay (pages 4/5) ===== */}
@@ -556,7 +550,11 @@ function ViewfinderCard({
       style={{
         backgroundColor: C.viewfinder,
         borderRadius: 20,
-        aspectRatio: "1 / 1",
+        // Cap the viewfinder height so the page fits in the viewport on phones.
+        // 50vh on an 844px iPhone = 422px → clamped to 380px; minHeight keeps it
+        // usable on very short screens.
+        height: "min(50vh, 380px)",
+        minHeight: 240,
       }}
     >
       {/* html5-qrcode injects the <video> here */}
@@ -611,9 +609,9 @@ function ViewfinderCard({
           <button
             type="button"
             onClick={onRetry}
-            className="mt-1 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-gray-900 transition-transform active:scale-95"
+            className="mt-2 inline-flex min-h-12 items-center gap-2 rounded-full bg-white px-5 py-2.5 text-base font-semibold text-gray-900 shadow-sm transition-transform active:scale-95"
           >
-            <RefreshCw className="h-4 w-4" />
+            <RefreshCw className="h-5 w-5" />
             Réessayer
           </button>
         </div>
@@ -703,7 +701,7 @@ function StatsLine({
       : 0,
   );
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2 pb-safe">
       <div className="flex items-baseline justify-between">
         <span
           className="text-sm font-medium"
