@@ -126,6 +126,14 @@ export interface EntryRecord {
   timestamp: string;
 }
 
+/** Per-day breakdown (entries + each pause type for one day). */
+export interface DayDetail {
+  day: DayNumber;
+  entries: number;
+  cafe: number;
+  dejeuner: number;
+}
+
 export interface StatsResponse {
   totalScans: number;
   totalEntries: number;
@@ -135,6 +143,7 @@ export interface StatsResponse {
   entriesByDay: Record<string, number>;
   recent: PauseRecord[];
   recentEntries: EntryRecord[];
+  dayDetail: DayDetail | null;
 }
 
 // ---- Effective pause (auto + admin override) --------------------------------

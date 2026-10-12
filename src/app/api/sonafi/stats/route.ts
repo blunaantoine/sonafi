@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
-/** GET /api/sonafi/stats — global counts + breakdowns + recent activity. */
+const VALID_DAYS = new Set([1, 2, 3]);
+
+/** GET /api/sonafi/stats — global counts + breakdowns + recent activity.
+ *  Optional ?day=1|2|3 adds per-day detail (entries + each pause for that day). */
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const recentLimit = Math.min(Number(searchParams.get("recent") ?? "10"), 50);
+  const dayParam = Number(searchParams.get("day"));
+  const day = VALID_DAYS.has(dayParam) ? dayParam : null;
 
   const [
     totalScans,
@@ -13,7 +18,7 @@ export async function GET(req: NextRequest) {
     byDay,
     byPauseType,
     recent,
-    entriesByDay,
+    entriesByDayRows,
     recentEntries,
   ] = await Promise.all([
     db.pause.count(),
@@ -49,14 +54,22 @@ export async function GET(req: NextRequest) {
   const dayCounts: Record<number, number> = { 1: 0, 2: 0, 3: 0 };
   for (const row of byDay) dayCounts[row.day] = row._count._all;
 
-  const pauseCounts: Record<string, number> = {
-    cafe: 0,
-    dejeuner: 0,
-  };
+  const pauseCounts: Record<string, number> = { cafe: 0, dejeuner: 0 };
   for (const row of byPauseType) pauseCounts[row.pauseType] = row._count._all;
 
   const entryDayCounts: Record<number, number> = { 1: 0, 2: 0, 3: 0 };
-  for (const row of entriesByDay) entryDayCounts[row.day] = row._count._all;
+  for (const row of entriesByDayRows) entryDayCounts[row.day] = row._count._all;
+
+  // Per-day detail (only when ?day= was provided).
+  let dayDetail: { day: number; entries: number; cafe: number; dejeuner: number } | null = null;
+  if (day !== null) {
+    const [entries, cafe, dejeuner] = await Promise.all([
+      db.entry.count({ where: { day } }),
+      db.pause.count({ where: { day, pauseType: "cafe" } }),
+      db.pause.count({ where: { day, pauseType: "dejeuner" } }),
+    ]);
+    dayDetail = { day, entries, cafe, dejeuner };
+  }
 
   return NextResponse.json({
     totalScans,
@@ -80,5 +93,6 @@ export async function GET(req: NextRequest) {
       day: e.day,
       timestamp: e.timestamp,
     })),
+    dayDetail,
   });
 }
