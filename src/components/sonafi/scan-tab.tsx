@@ -419,7 +419,7 @@ export function ScanTab() {
     <div className="flex h-[100dvh] flex-col">
       {/* ===== Orange header (rounded bottom corners, pt-safe clears the notch) ===== */}
       <header
-        className="safe-x rounded-b-3xl px-5 pb-4 pt-safe text-white shadow-sm"
+        className="px-safe rounded-b-3xl pb-4 pt-safe text-white shadow-sm"
         style={{
           backgroundColor: C.restauration,
           borderBottomLeftRadius: R.headerBottom,

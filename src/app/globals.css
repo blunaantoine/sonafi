@@ -125,9 +125,11 @@
 }
 
 /* ---- Safe-area utilities (notch / home indicator on iOS) ----------------
- * Usage: add `safe-top` / `safe-bottom` / `safe-x` classes to headers,
- * footers, and sticky bars so content isn't hidden behind the notch or the
- * home indicator.
+ * Usage: add `safe-top` / `safe-bottom` classes to headers, footers, and
+ * sticky bars so content isn't hidden behind the notch or the home indicator.
+ * `px-safe` REPLACES `px-5 safe-x`: it keeps a 1.25rem base horizontal
+ * padding and ADDS the device safe-area inset (0 on desktop, so text never
+ * sticks to the edges). Override the base with `--px-base` if needed.
  */
 @layer utilities {
   .safe-top {
@@ -136,9 +138,9 @@
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom);
   }
-  .safe-x {
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
+  .px-safe {
+    padding-left: calc(var(--px-base, 1.25rem) + env(safe-area-inset-left, 0px));
+    padding-right: calc(var(--px-base, 1.25rem) + env(safe-area-inset-right, 0px));
   }
   .pt-safe {
     padding-top: calc(env(safe-area-inset-top) + 1.25rem);

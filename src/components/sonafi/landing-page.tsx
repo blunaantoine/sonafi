@@ -103,7 +103,7 @@ export function LandingPage({
     >
       {/* ---------------- Header block (navy, rounded bottom) ---------------- */}
       <header
-        className="px-5 pb-6 pt-safe safe-x"
+        className="px-safe pb-6 pt-safe"
         style={{
           backgroundColor: C.gestionnaire,
           borderBottomLeftRadius: R.headerBottom,

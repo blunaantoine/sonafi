@@ -240,7 +240,7 @@ export function AdminDashboard({
     >
       {/* ---- Navy header ---- */}
       <div
-        className="flex flex-col gap-2 px-5 pb-6 pt-safe safe-x text-white"
+        className="flex flex-col gap-2 px-safe pb-6 pt-safe text-white"
         style={{ backgroundColor: NAVY, borderRadius: "0 0 24px 24px" }}
       >
         {/* Top utility row: back button + pill badge */}
