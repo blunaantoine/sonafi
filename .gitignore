@@ -67,3 +67,5 @@ server.log
 # Agent worklog (local session log)
 /worklog.md
 /agent-ctx/tool-results/
+vlm-result.json
+*.json.bak
