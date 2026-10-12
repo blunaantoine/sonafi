@@ -27,7 +27,7 @@ model Pause {
   participantId String
   /// Summit day, 1, 2 or 3.
   day          Int
-  /// Pause type: "cafe", "dejeuner" or "jeux".
+  /// Pause type: "cafe" or "dejeuner".
   pauseType    String
   timestamp    DateTime   @default(now())
 
@@ -36,4 +36,14 @@ model Pause {
   @@unique([participantId, day, pauseType], map: "pauses_participant_day_pause_unique")
   @@index([day, pauseType])
   @@index([participantId])
+}
+
+/// Generic key/value store for event-wide settings shared across all devices.
+/// Used today for the global pause override (admin can force a pause type when
+/// the schedule is delayed). The value is a JSON string.
+model Setting {
+  key       String   @id
+  /// JSON-encoded value (shape depends on the key).
+  value     String
+  updatedAt DateTime @updatedAt
 }

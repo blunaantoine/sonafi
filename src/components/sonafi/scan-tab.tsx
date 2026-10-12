@@ -11,10 +11,12 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle,
   Check,
+  Clock,
   Loader2,
   RefreshCw,
   RotateCcw,
   ScanLine,
+  ShieldAlert,
   WifiOff,
   X,
 } from "lucide-react";
@@ -25,11 +27,13 @@ import {
   DAY_LABELS,
   DAYS,
   PAUSE_META,
-  PAUSE_TYPES,
+  PAUSE_WINDOWS,
   formatTimestamp,
   type DayNumber,
+  type EffectivePause,
   type PauseType,
 } from "@/lib/sonafi";
+import { useEffectivePause } from "@/components/sonafi/use-effective-pause";
 import { cn } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
@@ -49,7 +53,6 @@ const OVERLAY_MS = 2200;
 const MAX_RECENT = 12;
 
 const LS_DAY = "sonafi.scan.day";
-const LS_PAUSE = "sonafi.scan.pauseType";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -107,19 +110,6 @@ function readDay(): DayNumber {
   return 1;
 }
 
-function readPause(): PauseType {
-  if (typeof window === "undefined") return "cafe";
-  try {
-    const raw = window.localStorage.getItem(LS_PAUSE);
-    if (raw == null) return "cafe";
-    const v = JSON.parse(raw) as string;
-    if (v === "cafe" || v === "dejeuner") return v;
-  } catch {
-    /* ignore */
-  }
-  return "cafe";
-}
-
 function writeLS(key: string, value: unknown): void {
   try {
     window.localStorage.setItem(key, JSON.stringify(value));
@@ -154,17 +144,18 @@ function friendlyCameraError(err: unknown): string {
 // ---------------------------------------------------------------------------
 
 export function ScanTab() {
-  // ----- Persistent selectors ---------------------------------------------
+  // ----- Day selector (persisted) ------------------------------------------
   const [day, setDay] = useState<DayNumber>(readDay);
-  const [pauseType, setPauseType] = useState<PauseType>(readPause);
-
   useEffect(() => writeLS(LS_DAY, day), [day]);
-  useEffect(() => writeLS(LS_PAUSE, pauseType), [pauseType]);
+
+  // ----- Effective pause: automatic by clock, or admin-forced (shared) ----
+  const { pause: effective } = useEffectivePause();
+  const pauseType: PauseType | null = effective?.pauseType ?? null;
 
   // Refs mirroring day/pause so the (once-created) scan callback always sees
   // the latest value even if the user switches mid-session.
   const dayRef = useRef(day);
-  const pauseTypeRef = useRef(pauseType);
+  const pauseTypeRef = useRef<PauseType | null>(pauseType);
   useEffect(() => {
     dayRef.current = day;
   }, [day]);
@@ -204,11 +195,11 @@ export function ScanTab() {
   // ----- recordPause: POST to the API, build overlay + recent entry -------
   const recordPause = useCallback(async (participantId: string) => {
     if (inFlightRef.current) return;
-    inFlightRef.current = true;
-    scanningRef.current = false;
-
     const d = dayRef.current;
     const p = pauseTypeRef.current;
+    if (!p) return; // pause type not known yet — ignore the scan
+    inFlightRef.current = true;
+    scanningRef.current = false;
 
     // Show loading overlay immediately so the user sees feedback.
     setOverlay({
@@ -452,36 +443,9 @@ export function ScanTab() {
         </div>
       </section>
 
-      {/* Pause selector */}
-      <section aria-label="Choix de la pause">
-        <h2 className="mb-2 text-sm font-semibold text-muted-foreground">Pause</h2>
-        <div className="grid grid-cols-3 gap-2">
-          {PAUSE_TYPES.map((p) => {
-            const meta = PAUSE_META[p];
-            const active = p === pauseType;
-            return (
-              <button
-                key={p}
-                type="button"
-                onClick={() => setPauseType(p)}
-                aria-pressed={active}
-                className={cn(
-                  "flex h-16 flex-col items-center justify-center gap-1 rounded-xl border text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
-                  active
-                    ? cn(meta.soft, "ring-2", meta.ring, "focus-visible:ring-emerald-400")
-                    : "border-border bg-background text-foreground hover:bg-accent focus-visible:ring-emerald-400",
-                )}
-              >
-                <span className="text-2xl leading-none" aria-hidden>
-                  {meta.emoji}
-                </span>
-                <span className="leading-tight">
-                  {meta.label.replace(/^Pause\s+/, "")}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+      {/* Active pause — automatic by clock, or forced by admin */}
+      <section aria-label="Pause en cours">
+        <PauseBadge pause={effective} />
       </section>
 
       {/* Camera */}
@@ -584,7 +548,9 @@ export function ScanTab() {
                     : "Démarrage…"}
               </span>
               <span className="inline-flex items-center gap-1.5">
-                {PAUSE_META[pauseType].emoji} {PAUSE_META[pauseType].label} ·{" "}
+                {pauseType
+                  ? `${PAUSE_META[pauseType].emoji} ${PAUSE_META[pauseType].label}`
+                  : "Pause…"}{" "}·{" "}
                 {DAY_LABELS[day]}
               </span>
             </div>
@@ -660,6 +626,67 @@ export function ScanTab() {
 }
 
 export default ScanTab;
+
+// ---------------------------------------------------------------------------
+// PauseBadge — shows the current effective pause (auto by clock, or forced)
+// ---------------------------------------------------------------------------
+
+function PauseBadge({ pause }: { pause: EffectivePause | null }) {
+  if (!pause) {
+    return (
+      <Card className="border-emerald-100 py-0">
+        <CardContent className="flex items-center gap-3 px-4 py-3">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">
+            Chargement de la pause en cours…
+          </span>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const meta = PAUSE_META[pause.pauseType];
+  const isOverride = pause.source === "override";
+
+  return (
+    <Card className={cn("overflow-hidden py-0", isOverride ? "border-rose-200" : "border-emerald-100")}>
+      <CardContent className="px-4 py-3">
+        <div className="flex items-center gap-3">
+          <div
+            className={cn(
+              "flex h-12 w-12 items-center justify-center rounded-xl text-2xl",
+              meta.soft,
+            )}
+            aria-hidden
+          >
+            {meta.emoji}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-semibold">{meta.label}</h2>
+              {isOverride ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-700">
+                  <ShieldAlert className="h-3 w-3" />
+                  Forcée
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+                  <Clock className="h-3 w-3" />
+                  Auto
+                </span>
+              )}
+            </div>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {isOverride
+                ? `Forcée par l'admin — les scanners utilisent cette pause.`
+                : PAUSE_WINDOWS[pause.pauseType]}
+            </p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // StatusPill — small coloured pill for the recent-scans list

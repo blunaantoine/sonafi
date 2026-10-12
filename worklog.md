@@ -434,3 +434,65 @@ Stage Summary:
 - The system now manages 2 pauses per day (café + déjeuner) across 3 days.
 - 500 participants + 2 pauses/day = 1000 potential scans/day, 3000 total.
 - No DB migration needed (pauseType is a free String column); 0 rows in DB.
+
+---
+Task ID: 9
+Agent: main (orchestrator)
+Task: Split the app into two roles (scanner vs admin) with role-based views, make
+the pause type automatic by time-of-day (8h–11h café, 11h+ déjeuner), and let
+only the admin override the pause (shared across all phones) in case of delay.
+
+Work Log:
+- Added a `Setting` model (key/value) to Prisma to store the global pause
+  override server-side, so every scanner phone picks it up. Pushed to DB.
+- Shared lib (`src/lib/sonafi.ts`): added `computeAutoPause(now)` (8h–11h →
+  café, ≥11h → déjeuner, <8h → café default), `CAFE_START_HOUR`/`DEJEUNER_START_HOUR`,
+  `PAUSE_WINDOWS` labels, `Role` type ("scanner"|"admin"), `PauseSource` and
+  `EffectivePause` types.
+- API routes:
+  - `POST /api/sonafi/auth/verify` {pin} → {valid} — checks ADMIN_PIN env
+    (default "sonafi2025") server-side.
+  - `GET /api/sonafi/pause/current` → {pauseType, source:"auto"|"override",
+    autoPauseType, setAt?} — the single source of truth scanners poll.
+  - `POST /api/sonafi/pause/override` {pin, pauseType:"cafe"|"dejeuner"|null} →
+    admin-only (PIN re-checked server-side). null clears the override.
+- Client hooks/components:
+  - `use-role.ts` — role in localStorage ("scanner" default, "admin" after PIN).
+  - `use-effective-pause.ts` — polls /pause/current every 4s, pauses when tab
+    hidden, exposes `refetch` for immediate refresh after an override.
+  - `admin-gate.tsx` — PIN dialog (wrong PIN → error, correct → admin mode +
+    stashes PIN in sessionStorage for the override action).
+  - `pause-override-bar.tsx` — admin control: shows active pause (auto/forced)
+    + "Forcer café" / "Forcer déjeuner" / "Auto" buttons. Uses the stashed PIN;
+    server re-validates on every action.
+- Refactored `scan-tab.tsx`: removed the manual pause selector entirely. The
+  pause is now the effective pause (auto by clock, or admin override). Added a
+  `PauseBadge` showing "☕ Pause café AUTO De 8h à 11h" or "🍽️ Pause déjeuner
+  FORCÉE — Forcée par l'admin". Kept the day selector.
+- Refactored `page.tsx` into role-based views:
+  - **Scanner** (default): full-screen scan only — day selector, auto pause
+    badge, camera, recent scans. NO management tabs. A small lock icon in the
+    header opens the admin PIN gate.
+  - **Admin** (after PIN): a `PauseOverrideBar` (always visible at the top) +
+    management tabs (Badges / Participantes / Statistiques). NO scan tab — scan
+    is the scanner's job. A "Quitter l'admin" button returns to scanner mode.
+- Verified end-to-end with Agent Browser (desktop + iPhone 14):
+  * Scanner view: auto pause badge "Pause café AUTO De 8h à 11h", lock icon
+    present, no management tabs.
+  * Admin gate: wrong PIN → "Code administrateur incorrect." error; correct
+    PIN (sonafi2025) → admin view appears.
+  * Override flow: "Forcer déjeuner" → pause becomes "Pause déjeuner FORCÉE",
+    API confirms source:"override". "Quitter l'admin" → scanner view
+    immediately shows "🍽️ Pause déjeuner FORCÉE" (override propagated via the
+    shared DB). "Auto" clears the override → back to "Pause café AUTO".
+  * Mobile responsive, no runtime errors, lint clean.
+  * DB clean: 0 pauses, 500 participants, 0 overrides.
+
+Stage Summary:
+- Two roles: scanner (scan-only, full screen, auto pause) and admin (PIN-gated,
+  manages badges/participants/stats + controls the pause override).
+- Pause type is automatic by time (8h–11h café, 11h+ déjeuner); only the admin
+  can force a different one (shared across all phones) when the schedule is
+  delayed. Scanners pick it up within ~4s via polling.
+- Admin PIN default: "sonafi2025" (override via ADMIN_PIN env var at deploy).
+- The scanner no longer chooses the pause — the clock (or admin) decides.

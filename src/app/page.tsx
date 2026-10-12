@@ -1,21 +1,36 @@
 "use client";
 
 import { useState } from "react";
-import { QrCode, IdCard, Users, BarChart3, ScanLine } from "lucide-react";
+import {
+  IdCard,
+  Users,
+  BarChart3,
+  ScanLine,
+  Lock,
+  LogOut,
+} from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { ScanTab } from "@/components/sonafi/scan-tab";
 import { BadgesTab } from "@/components/sonafi/badges-tab";
 import { ParticipantsTab } from "@/components/sonafi/participants-tab";
 import { StatsTab } from "@/components/sonafi/stats-tab";
+import { PauseOverrideBar } from "@/components/sonafi/pause-override-bar";
+import { AdminGate } from "@/components/sonafi/admin-gate";
 import { useTotalScans } from "@/components/sonafi/use-total-scans";
+import { useRole } from "@/components/sonafi/use-role";
+import { useEffectivePause } from "@/components/sonafi/use-effective-pause";
 import { TOTAL_PARTICIPANTS } from "@/lib/sonafi";
 
-export type SonafiTab = "scan" | "badges" | "participants" | "stats";
+export type AdminTab = "badges" | "participants" | "stats";
 
 export default function Home() {
-  const [tab, setTab] = useState<SonafiTab>("scan");
-  const { totalScans } = useTotalScans(tab === "scan");
+  const { role, becomeAdmin, becomeScanner } = useRole();
+  const [tab, setTab] = useState<AdminTab>("stats");
+  const [gateOpen, setGateOpen] = useState(false);
+  const { totalScans } = useTotalScans(role === "scanner");
+  const { pause, error: pauseError, refetch: refetchPause } = useEffectivePause();
 
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-b from-emerald-50/40 via-background to-background">
@@ -31,62 +46,63 @@ export default function Home() {
                 Sommet Sonafi
               </h1>
               <p className="text-xs text-muted-foreground">
-                Gestion des pauses · {TOTAL_PARTICIPANTS} participantes
+                {role === "admin" ? "Espace administrateur" : "Scanner"} ·{" "}
+                {TOTAL_PARTICIPANTS} participantes
               </p>
             </div>
           </div>
-          <Badge
-            variant="secondary"
-            className="hidden gap-1.5 rounded-full border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-700 sm:inline-flex"
-          >
-            <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
-            {totalScans} passage{totalScans === 1 ? "" : "s"} enregistré
-            {totalScans === 1 ? "" : "s"}
-          </Badge>
+
+          <div className="flex items-center gap-2">
+            {role === "admin" ? (
+              <>
+                <Badge
+                  variant="secondary"
+                  className="hidden gap-1.5 rounded-full border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-700 sm:inline-flex"
+                >
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+                  {totalScans} passage{totalScans === 1 ? "" : "s"}
+                </Badge>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                  onClick={becomeScanner}
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span className="hidden sm:inline">Quitter l'admin</span>
+                  <span className="sm:hidden">Scanner</span>
+                </Button>
+              </>
+            ) : (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 text-muted-foreground hover:bg-emerald-50 hover:text-emerald-700"
+                aria-label="Espace administrateur"
+                title="Espace administrateur"
+                onClick={() => setGateOpen(true)}
+              >
+                <Lock className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </header>
 
       {/* Main */}
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-5 sm:px-6">
-        <Tabs value={tab} onValueChange={(v) => setTab(v as SonafiTab)}>
-          <div className="sticky top-[65px] z-20 -mx-4 mb-1 bg-background/90 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/75 sm:-mx-6 sm:px-6">
-            <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="scan" className="gap-1.5">
-              <QrCode className="h-4 w-4 sm:hidden" />
-              <span className="hidden sm:inline">Scanner</span>
-              <span className="sm:hidden">Scan</span>
-            </TabsTrigger>
-            <TabsTrigger value="badges" className="gap-1.5">
-              <IdCard className="h-4 w-4" />
-              <span className="hidden sm:inline">Badges</span>
-              <span className="sm:hidden">Badges</span>
-            </TabsTrigger>
-            <TabsTrigger value="participants" className="gap-1.5">
-              <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">Participantes</span>
-              <span className="sm:hidden">Liste</span>
-            </TabsTrigger>
-            <TabsTrigger value="stats" className="gap-1.5">
-              <BarChart3 className="h-4 w-4" />
-              <span className="hidden sm:inline">Statistiques</span>
-              <span className="sm:hidden">Stats</span>
-            </TabsTrigger>
-            </TabsList>
-          </div>
-
-          <TabsContent value="scan" className="mt-4">
-            <ScanTab />
-          </TabsContent>
-          <TabsContent value="badges" className="mt-4">
-            <BadgesTab />
-          </TabsContent>
-          <TabsContent value="participants" className="mt-4">
-            <ParticipantsTab />
-          </TabsContent>
-          <TabsContent value="stats" className="mt-4">
-            <StatsTab />
-          </TabsContent>
-        </Tabs>
+        {role === "scanner" ? (
+          <ScannerView pauseError={pauseError} />
+        ) : (
+          <AdminView
+            tab={tab}
+            setTab={setTab}
+            pause={pause}
+            refetchPause={refetchPause}
+          />
+        )}
       </main>
 
       {/* Sticky footer */}
@@ -101,6 +117,77 @@ export default function Home() {
           </p>
         </div>
       </footer>
+
+      {/* Admin PIN gate */}
+      <AdminGate open={gateOpen} onOpenChange={setGateOpen} onSuccess={becomeAdmin} />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Scanner view — full-screen scan with automatic pause (no tabs, no clutter)
+// ---------------------------------------------------------------------------
+
+function ScannerView({ pauseError }: { pauseError: string | null }) {
+  return (
+    <div className="mx-auto max-w-xl">
+      {pauseError && (
+        <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-center text-xs text-amber-700">
+          {pauseError}
+        </p>
+      )}
+      <ScanTab />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Admin view — override bar + management tabs (no scan)
+// ---------------------------------------------------------------------------
+
+interface AdminViewProps {
+  tab: AdminTab;
+  setTab: (t: AdminTab) => void;
+  pause: ReturnType<typeof useEffectivePause>["pause"];
+  refetchPause: () => void;
+}
+
+function AdminView({ tab, setTab, pause, refetchPause }: AdminViewProps) {
+  return (
+    <div className="space-y-4">
+      {/* Pause override — always visible to the admin (the "retard" escape hatch) */}
+      <PauseOverrideBar pause={pause} onChanged={refetchPause} />
+
+      <Tabs value={tab} onValueChange={(v) => setTab(v as AdminTab)}>
+        <div className="sticky top-[65px] z-20 -mx-4 mb-1 bg-background/90 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/75 sm:-mx-6 sm:px-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="badges" className="gap-1.5">
+              <IdCard className="h-4 w-4" />
+              <span>Badges</span>
+            </TabsTrigger>
+            <TabsTrigger value="participants" className="gap-1.5">
+              <Users className="h-4 w-4" />
+              <span className="hidden sm:inline">Participantes</span>
+              <span className="sm:hidden">Liste</span>
+            </TabsTrigger>
+            <TabsTrigger value="stats" className="gap-1.5">
+              <BarChart3 className="h-4 w-4" />
+              <span className="hidden sm:inline">Statistiques</span>
+              <span className="sm:hidden">Stats</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
+        <TabsContent value="badges" className="mt-4">
+          <BadgesTab />
+        </TabsContent>
+        <TabsContent value="participants" className="mt-4">
+          <ParticipantsTab />
+        </TabsContent>
+        <TabsContent value="stats" className="mt-4">
+          <StatsTab />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
