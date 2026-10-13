@@ -217,16 +217,12 @@ export function BadgeCheckTab() {
           const startConfig: string | MediaTrackConstraints =
             deviceId ?? { facingMode: "environment" };
 
+          // No qrbox — the library-drawn scan box never aligns with the CSS
+          // corner brackets over the object-cover video (misaligned double
+          // frame). Full-frame decode, the white brackets are the only guide.
           await instance.start(
             startConfig,
-            {
-              fps: 10,
-              qrbox: (vw: number, vh: number) => {
-                const minEdge = Math.min(vw, vh);
-                const size = Math.max(160, Math.floor(minEdge * 0.7));
-                return { width: size, height: size };
-              },
-            },
+            { fps: 10 },
             handleScan,
             () => {
               /* per-frame decode errors are noisy — ignore */

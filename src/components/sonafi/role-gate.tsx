@@ -71,14 +71,8 @@ export function RoleGate({ role, open, onOpenChange, onSuccess }: RoleGateProps)
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  // Latest onOpenChange, for the popstate listener below (stale-closure safe).
-  const onOpenChangeRef = useRef(onOpenChange);
   const meta = ROLE_META[role];
   const Icon = meta.icon;
-
-  useEffect(() => {
-    onOpenChangeRef.current = onOpenChange;
-  }, [onOpenChange]);
 
   // Reset state whenever the dialog opens.
   useEffect(() => {
@@ -92,20 +86,10 @@ export function RoleGate({ role, open, onOpenChange, onSuccess }: RoleGateProps)
     }
   }, [open]);
 
-  // Phone back button closes the gate instead of leaving the page: a history
-  // entry is pushed while the dialog is open; popstate (Android back /
-  // iOS swipe) then closes the gate. Closing via the X / Retour button pops
-  // the pushed entry so history never accumulates stale states.
-  useEffect(() => {
-    if (!open) return;
-    window.history.pushState({ sonafiGate: true }, "");
-    const onPopState = () => onOpenChangeRef.current(false);
-    window.addEventListener("popstate", onPopState);
-    return () => {
-      window.removeEventListener("popstate", onPopState);
-      if (window.history.state?.sonafiGate) window.history.back();
-    };
-  }, [open]);
+  // The phone's back button closes this gate via the central history
+  // reconciler in page.tsx (ONE popstate owner for the whole app) — see
+  // "History layers" there. The visible Retour button below simply calls
+  // onOpenChange(false), which the reconciler reconciles into history.
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();

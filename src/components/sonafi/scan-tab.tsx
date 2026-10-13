@@ -380,14 +380,14 @@ export function ScanTab() {
           });
           html5Ref.current = instance;
 
-          const config = {
-            fps: 10,
-            qrbox: (vw: number, vh: number) => {
-              const minEdge = Math.min(vw, vh);
-              const size = Math.max(160, Math.floor(minEdge * 0.7));
-              return { width: size, height: size };
-            },
-          };
+          // No qrbox: html5-qrcode would draw its OWN scan box over the video
+          // (70% of the frame) and it never lines up with the CSS corner
+          // brackets overlaying the object-cover video — users saw a
+          // misaligned double frame. Without qrbox the library draws nothing
+          // and decodes the full frame; the white brackets are the single,
+          // always-aligned guide. Full-frame decode at 10 fps is fine on the
+          // event phones.
+          const config = { fps: 10 };
 
           // html5-qrcode's createVideoConstraints() only accepts a device-id
           // string, { facingMode: "user"|"environment" } or { facingMode:
