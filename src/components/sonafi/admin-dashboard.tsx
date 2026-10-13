@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Users,
   QrCode,
+  ScanLine,
   History,
   Download,
   ArrowLeft,
@@ -26,6 +27,7 @@ import { PauseOverrideBar } from "@/components/sonafi/pause-override-bar";
 import { ConfigCard } from "@/components/sonafi/config-card";
 import { AccessCodesCard } from "@/components/sonafi/access-codes-card";
 import { BadgesTab } from "@/components/sonafi/badges-tab";
+import { BadgeCheckTab } from "@/components/sonafi/badge-check-tab";
 import { ParticipantsTab } from "@/components/sonafi/participants-tab";
 import { StatsTab } from "@/components/sonafi/stats-tab";
 import { C } from "@/lib/design-tokens";
@@ -44,7 +46,13 @@ const DIVIDER = C.divider;
 const TEAL = C.entriesBar;
 const ROSE = C.pauseCafe;
 
-type View = "dashboard" | "participants" | "badges" | "historique" | "config";
+type View =
+  | "dashboard"
+  | "participants"
+  | "badges"
+  | "badge-check"
+  | "historique"
+  | "config";
 
 interface AdminDashboardProps {
   pause: EffectivePause | null;
@@ -191,6 +199,13 @@ export function AdminDashboard({
   }
   if (view === "badges") {
     return <SubView title="Badges QR" onBack={() => setView("dashboard")}><BadgesTab /></SubView>;
+  }
+  if (view === "badge-check") {
+    return (
+      <SubView title="Vérifier un badge" onBack={() => setView("dashboard")}>
+        <BadgeCheckTab />
+      </SubView>
+    );
   }
   if (view === "historique") {
     return <SubView title="Historique" onBack={() => setView("dashboard")}><StatsTab /></SubView>;
@@ -342,6 +357,13 @@ export function AdminDashboard({
             title="Badges QR"
             subtitle={`Générer et imprimer les ${total} badges`}
             onClick={() => setView("badges")}
+          />
+          <Divider />
+          <NavRow
+            icon={<ScanLine className="h-[22px] w-[22px]" />}
+            title="Vérifier un badge"
+            subtitle="Statut et historique d'un participant"
+            onClick={() => setView("badge-check")}
           />
           <Divider />
           <NavRow
