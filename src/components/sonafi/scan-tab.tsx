@@ -81,12 +81,19 @@ const QR_READER_ID = "sonafi-restauration-qr-reader";
 
 /** Ignore repeated decodes of the same code within this window (ms). */
 const DEBOUNCE_MS = 2500;
-
 /** How long the result overlay stays on screen after a result (ms). */
 const OVERLAY_MS = 2200;
 
 /** How often the per-day café count is refreshed (ms). */
 const STATS_POLL_MS = 4000;
+/**
+ * Hard ceiling for the record request. Without it a hung mobile connection
+ * would keep the full-screen "Vérification…" overlay up forever — and that
+ * overlay covers the header back arrow, so the user was trapped ("le bouton
+ * retour ne fonctionne pas"). On timeout the overlay turns to the error
+ * state, auto-dismisses and hands control back to the user.
+ */
+const FETCH_TIMEOUT_MS = 8000;
 
 /** Fallback participant count for the stats line (X / 500). */
 const DEFAULT_TOTAL = 500;
@@ -169,6 +176,10 @@ export function ScanTab() {
   const lastScanRef = useRef<{ id: string; ts: number }>({ id: "", ts: 0 });
   const inFlightRef = useRef(false);
   const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Bumped whenever the overlay is dismissed / the user leaves — a record
+   *  response still in flight is then dropped instead of resurrecting the
+   *  full-screen overlay after the user already moved on. */
+  const recordSeqRef = useRef(0);
 
   const [overlay, setOverlay] = useState<ScanResult | null>(null);
 
@@ -221,6 +232,7 @@ export function ScanTab() {
     if (!p) return; // pause type not known yet — ignore the scan
     inFlightRef.current = true;
     scanningRef.current = false;
+    const seq = ++recordSeqRef.current;
 
     // Show loading overlay immediately so the user sees feedback.
     setOverlay({
@@ -232,11 +244,17 @@ export function ScanTab() {
 
     let result: ScanResult;
 
+    // Hard timeout — a hung connection must never keep the full-screen
+    // overlay (and therefore the back gesture) hostage.
+    const controller = new AbortController();
+    const abortTimer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
     try {
       const res = await fetch("/api/sonafi/pause/record", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ participantId, day: d, pauseType: p }),
+        signal: controller.signal,
       });
       const data = (await res.json().catch(() => ({}))) as {
         success?: boolean;
@@ -278,6 +296,15 @@ export function ScanTab() {
       }
     } catch {
       result = { state: "error", participantId, day: d, pauseType: p };
+    } finally {
+      clearTimeout(abortTimer);
+    }
+
+    // The user dismissed the overlay or went home while the request was in
+    // flight — drop the late response instead of re-showing the overlay.
+    if (seq !== recordSeqRef.current) {
+      inFlightRef.current = false;
+      return;
     }
 
     // Show the final result.
@@ -549,11 +576,22 @@ export function ScanTab() {
 
   // ----- dismissOverlay: called when the user taps "Scanner le suivant" ----
   const dismissOverlay = useCallback(() => {
-    if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+    if (resumeTimerRef.current) {
+      clearTimeout(resumeTimerRef.current);
+      resumeTimerRef.current = null;
+    }
+    recordSeqRef.current += 1; // in-flight responses must not re-show it
     setOverlay(null);
     scanningRef.current = true;
     inFlightRef.current = false;
   }, []);
+
+  // ----- goHomeFromOverlay: the overlay's back arrow — back must work even
+  // while the full-screen verdict covers the header arrow -------------------
+  const goHomeFromOverlay = useCallback(() => {
+    dismissOverlay();
+    goHome();
+  }, [dismissOverlay, goHome]);
 
   // -----------------------------------------------------------------------
   // Render
@@ -664,7 +702,11 @@ export function ScanTab() {
       </div>
 
       {/* ===== Full-screen result overlay (pages 4/5) ===== */}
-      <ScanResultOverlay result={overlay} onScanNext={dismissOverlay} />
+      <ScanResultOverlay
+        result={overlay}
+        onScanNext={dismissOverlay}
+        onBack={goHomeFromOverlay}
+      />
 
       {/* Hidden input — photo-based scan fallback (native camera app,
           no getUserMedia needed) */}

@@ -60,6 +60,14 @@ const DEBOUNCE_MS = 2500;
 
 /** How long the result overlay stays on screen after a result (ms). */
 const OVERLAY_MS = 2200;
+/**
+ * Hard ceiling for the record request. Without it a hung mobile connection
+ * would keep the full-screen "Vérification…" overlay up forever — and that
+ * overlay covers the header back arrow, so the user was trapped. On timeout
+ * the overlay turns to the error state, auto-dismisses and hands control
+ * back to the user.
+ */
+const FETCH_TIMEOUT_MS = 8000;
 
 /** Polling interval for the daily entries count (ms). */
 const STATS_POLL_MS = 5000;
@@ -130,6 +138,10 @@ export function VerificationView() {
   const lastScanRef = useRef<{ id: string; ts: number }>({ id: "", ts: 0 });
   const inFlightRef = useRef(false);
   const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Bumped whenever the overlay is dismissed / the user leaves — a record
+   *  response still in flight is then dropped instead of resurrecting the
+   *  full-screen overlay after the user already moved on. */
+  const recordSeqRef = useRef(0);
 
   const [overlay, setOverlay] = useState<OverlayState | null>(null);
   const [lastSuccess, setLastSuccess] = useState<{
@@ -185,11 +197,22 @@ export function VerificationView() {
 
   // ----- dismissOverlay: clear overlay + resume scanning ------------------
   const dismissOverlay = useCallback(() => {
-    if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+    if (resumeTimerRef.current) {
+      clearTimeout(resumeTimerRef.current);
+      resumeTimerRef.current = null;
+    }
+    recordSeqRef.current += 1; // in-flight responses must not re-show it
     setOverlay(null);
     scanningRef.current = true;
     inFlightRef.current = false;
   }, []);
+
+  // ----- goHomeFromOverlay: the overlay's back arrow — back must work even
+  // while the full-screen verdict covers the header arrow -------------------
+  const goHomeFromOverlay = useCallback(() => {
+    dismissOverlay();
+    goHome();
+  }, [dismissOverlay, goHome]);
 
   // ----- recordEntry: POST to the entries API, build overlay -------------
   const recordEntry = useCallback(
@@ -198,6 +221,7 @@ export function VerificationView() {
       const d = dayRef.current;
       inFlightRef.current = true;
       scanningRef.current = false;
+      const seq = ++recordSeqRef.current;
 
       // Show loading overlay immediately so the user sees feedback.
       setOverlay({
@@ -208,11 +232,17 @@ export function VerificationView() {
 
       let result: OverlayState;
 
+      // Hard timeout — a hung connection must never keep the full-screen
+      // overlay (and therefore the back gesture) hostage.
+      const controller = new AbortController();
+      const abortTimer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
       try {
         const res = await fetch("/api/sonafi/entries/record", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ participantId, day: d }),
+          signal: controller.signal,
         });
         const data = (await res.json().catch(() => ({}))) as {
           success?: boolean;
@@ -254,6 +284,15 @@ export function VerificationView() {
         }
       } catch {
         result = { state: "error", participantId, day: d };
+      } finally {
+        clearTimeout(abortTimer);
+      }
+
+      // The user dismissed the overlay or went home while the request was in
+      // flight — drop the late response instead of re-showing the overlay.
+      if (seq !== recordSeqRef.current) {
+        inFlightRef.current = false;
+        return;
       }
 
       // Show the final result.
@@ -1026,6 +1065,7 @@ export function VerificationView() {
       <VerificationResultOverlay
         overlay={overlay}
         onDismiss={dismissOverlay}
+        onBack={goHomeFromOverlay}
       />
     </div>
   );

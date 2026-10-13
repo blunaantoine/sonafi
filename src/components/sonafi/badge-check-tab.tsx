@@ -7,6 +7,11 @@
  * participant's status and full history: every validated pause and every
  * recorded entry, grouped by summit day.
  *
+ * The admin can also CORRECT a badge that was scanned by mistake: each
+ * history row has an "annuler" button (two-tap confirm) and the panel has a
+ * full "réinitialiser le badge" action — both go through
+ * POST /api/sonafi/badge/amend which re-validates the admin code.
+ *
  * The camera uses the same hardened lifecycle as the restoration /
  * verification scanners: single instance (startingRef mutex), clean teardown
  * releasing the tracks, stop/resume, front/back switch, visibilitychange
@@ -22,9 +27,11 @@ import {
   Camera,
   Loader2,
   RefreshCw,
+  RotateCcw,
   ScanLine,
   Search,
   SwitchCamera,
+  Undo2,
   Video,
   VideoOff,
 } from "lucide-react";
@@ -62,6 +69,17 @@ type CheckState =
   | { kind: "error"; message: string }
   | { kind: "ok"; data: BadgeHistory };
 
+/** One correction action on a badge's history (see /api/sonafi/badge/amend). */
+type AmendAction =
+  | { action: "delete_pause"; day: number; pauseType: "cafe" | "dejeuner" }
+  | { action: "delete_entry"; day: number }
+  | { action: "reset_all" };
+
+interface AmendFeedback {
+  kind: "ok" | "error";
+  text: string;
+}
+
 export function BadgeCheckTab() {
   // ----- Camera state (same hardened lifecycle as the scan tabs) ------------
   const html5Ref = useRef<Html5Qrcode | null>(null);
@@ -84,12 +102,25 @@ export function BadgeCheckTab() {
   const inFlightRef = useRef(false);
   const [manual, setManual] = useState("");
   const [state, setState] = useState<CheckState>({ kind: "idle" });
+  /** Bumped on every lookup — pending amend responses for a previous badge
+   *  are dropped so they can't overwrite the newly displayed one. */
+  const panelSeqRef = useRef(0);
+
+  // ----- Amend flow (correct a badge that was scanned by mistake) -----------
+  const [amendBusy, setAmendBusy] = useState<string | null>(null);
+  const [confirmKey, setConfirmKey] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<AmendFeedback | null>(null);
+  const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ----- checkBadge: POST /api/sonafi/badge/check (admin pin re-validated) ---
   const checkBadge = useCallback(async (rawCode: string) => {
     const code = rawCode.trim();
     if (!code || inFlightRef.current) return;
     inFlightRef.current = true;
+    panelSeqRef.current += 1; // invalidate any pending amend response
+    setConfirmKey(null);
+    setFeedback(null);
     setState({ kind: "loading", code });
 
     try {
@@ -135,6 +166,105 @@ export function BadgeCheckTab() {
     } finally {
       inFlightRef.current = false;
     }
+  }, []);
+
+  // ----- amendBadge: POST /api/sonafi/badge/amend (admin corrections) -------
+  /** Two-tap confirm lives in the panel; this performs the action and swaps
+   *  the refreshed history in place (single round-trip). */
+  const amendBadge = useCallback(
+    async (act: AmendAction, key: string) => {
+      if (amendBusy) return;
+      if (state.kind !== "ok") return;
+      const seq = panelSeqRef.current;
+      const code = state.data.participant.id;
+      const pin = sessionStorage.getItem("sonafi.adminPin") ?? "";
+
+      setAmendBusy(key);
+      setConfirmKey(null);
+      setFeedback(null);
+
+      try {
+        const res = await fetch("/api/sonafi/badge/amend", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pin, code, ...act }),
+        });
+        const data = (await res.json().catch(() => ({}))) as {
+          success?: boolean;
+          message?: string;
+          deleted?: { pauses: number; entries: number };
+          participant?: { id: string; name: string };
+          pauses?: { day: number; pauseType: string; timestamp: string }[];
+          entries?: { day: number; timestamp: string }[];
+        };
+
+        // Another badge was scanned meanwhile — the response is obsolete.
+        if (seq !== panelSeqRef.current) return;
+
+        if (res.status === 401) {
+          setState({
+            kind: "error",
+            message:
+              "Session administrateur expirée. Retournez à l'accueil et resaisissez le code.",
+          });
+          return;
+        }
+
+        if (res.ok && data.success && data.participant) {
+          setState({
+            kind: "ok",
+            data: {
+              participant: data.participant,
+              pauses: data.pauses ?? [],
+              entries: data.entries ?? [],
+            },
+          });
+          const removed =
+            (data.deleted?.pauses ?? 0) + (data.deleted?.entries ?? 0);
+          if (act.action === "reset_all") {
+            setFeedback({
+              kind: "ok",
+              text:
+                removed > 0
+                  ? `Badge réinitialisé — ${removed} enregistrement${removed > 1 ? "s" : ""} effacé${removed > 1 ? "s" : ""}.`
+                  : "Badge réinitialisé — aucun enregistrement à effacer.",
+            });
+          } else if (removed > 0) {
+            setFeedback({
+              kind: "ok",
+              text: "Scan annulé — l'historique est mis à jour.",
+            });
+          } else {
+            setFeedback({
+              kind: "error",
+              text: "Aucun enregistrement correspondant à annuler.",
+            });
+          }
+        } else {
+          setFeedback({
+            kind: "error",
+            text: data.message ?? "Modification impossible. Réessayez.",
+          });
+        }
+      } catch {
+        if (seq === panelSeqRef.current) {
+          setFeedback({
+            kind: "error",
+            text: "Réseau indisponible. Réessayez.",
+          });
+        }
+      } finally {
+        setAmendBusy(null);
+      }
+    },
+    [amendBusy, state],
+  );
+
+  /** Arm the two-tap confirm on a row (auto-disarms after 4 s). */
+  const requestConfirm = useCallback((key: string) => {
+    if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current);
+    setConfirmKey(key);
+    confirmTimerRef.current = setTimeout(() => setConfirmKey(null), 4000);
   }, []);
 
   // ----- handleScan: the camera callback (lock + debounce, same as scanners) -
@@ -317,6 +447,8 @@ export function BadgeCheckTab() {
     return () => {
       startingRef.current = false;
       inFlightRef.current = false;
+      if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
+      if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current);
       const inst = html5Ref.current;
       html5Ref.current = null;
       void (async () => {
@@ -562,7 +694,14 @@ export function BadgeCheckTab() {
       </div>
 
       {/* ===== Result panel ===== */}
-      <ResultPanel state={state} />
+      <ResultPanel
+        state={state}
+        amendBusy={amendBusy}
+        confirmKey={confirmKey}
+        feedback={feedback}
+        onRequestConfirm={requestConfirm}
+        onAmend={amendBadge}
+      />
 
       {/* Hidden photo input */}
       <input
@@ -585,10 +724,24 @@ export function BadgeCheckTab() {
 }
 
 // ---------------------------------------------------------------------------
-// ResultPanel — status + history, grouped by day
+// ResultPanel — status + history, grouped by day + admin corrections
 // ---------------------------------------------------------------------------
 
-function ResultPanel({ state }: { state: CheckState }) {
+function ResultPanel({
+  state,
+  amendBusy,
+  confirmKey,
+  feedback,
+  onRequestConfirm,
+  onAmend,
+}: {
+  state: CheckState;
+  amendBusy: string | null;
+  confirmKey: string | null;
+  feedback: AmendFeedback | null;
+  onRequestConfirm: (key: string) => void;
+  onAmend: (act: AmendAction, key: string) => void;
+}) {
   if (state.kind === "idle") return null;
 
   if (state.kind === "loading") {
@@ -702,7 +855,21 @@ function ResultPanel({ state }: { state: CheckState }) {
         <SummaryChip label="Déjeuners" value={dejCount} color={C.pauseCafe} />
       </div>
 
-      {/* Per-day history */}
+      {/* Amend feedback (scan cancelled / reset done / error) */}
+      {feedback && (
+        <p
+          role="status"
+          className="rounded-xl px-3 py-2 text-[13px] font-semibold"
+          style={{
+            background: feedback.kind === "ok" ? "rgba(15,118,110,0.10)" : "#FEF2F2",
+            color: feedback.kind === "ok" ? OK_GREEN : ERROR_RED,
+          }}
+        >
+          {feedback.text}
+        </p>
+      )}
+
+      {/* Per-day history — each row can be cancelled by the admin */}
       {days.length === 0 ? (
         <p className="py-2 text-center text-sm" style={{ color: TEXT_MUTED }}>
           Aucun passage enregistré pour ce participant.
@@ -720,30 +887,104 @@ function ResultPanel({ state }: { state: CheckState }) {
                 >
                   {DAY_LABELS[d] ?? `Jour ${d}`}
                 </p>
-                {dayEntries.map((e, i) => (
-                  <HistoryRow
-                    key={`e-${i}`}
-                    emoji="✅"
-                    label="Entrée enregistrée"
-                    time={formatTimestamp(e.timestamp)}
-                    color={C.entriesBar}
-                  />
-                ))}
-                {dayPauses.map((p, i) => {
-                  const meta = PAUSE_META[p.pauseType as "cafe" | "dejeuner"];
+                {dayEntries.map((e, i) => {
+                  const rowKey = `e-${d}`;
                   return (
                     <HistoryRow
-                      key={`p-${i}`}
+                      key={`${rowKey}-${i}`}
+                      emoji="✅"
+                      label="Entrée enregistrée"
+                      time={formatTimestamp(e.timestamp)}
+                      color={C.entriesBar}
+                      busy={amendBusy === rowKey}
+                      confirming={confirmKey === rowKey}
+                      onAmendTap={
+                        amendBusy && amendBusy !== rowKey
+                          ? undefined
+                          : () => {
+                              if (confirmKey === rowKey) {
+                                onAmend({ action: "delete_entry", day: d }, rowKey);
+                              } else {
+                                onRequestConfirm(rowKey);
+                              }
+                            }
+                      }
+                    />
+                  );
+                })}
+                {dayPauses.map((p, i) => {
+                  const meta = PAUSE_META[p.pauseType as "cafe" | "dejeuner"];
+                  const rowKey = `p-${d}-${p.pauseType}`;
+                  return (
+                    <HistoryRow
+                      key={`${rowKey}-${i}`}
                       emoji={meta?.emoji ?? "•"}
                       label={meta?.label ?? p.pauseType}
                       time={formatTimestamp(p.timestamp)}
                       color={C.pauseCafe}
+                      busy={amendBusy === rowKey}
+                      confirming={confirmKey === rowKey}
+                      onAmendTap={
+                        amendBusy && amendBusy !== rowKey
+                          ? undefined
+                          : () => {
+                              if (confirmKey === rowKey) {
+                                onAmend(
+                                  {
+                                    action: "delete_pause",
+                                    day: d,
+                                    pauseType: p.pauseType as "cafe" | "dejeuner",
+                                  },
+                                  rowKey,
+                                );
+                              } else {
+                                onRequestConfirm(rowKey);
+                              }
+                            }
+                      }
                     />
                   );
                 })}
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Danger zone — wipe the badge's whole history (two-tap confirm) */}
+      {days.length > 0 && (
+        <div className="flex flex-col gap-1.5 pt-1">
+          {confirmKey === "reset-all" ? (
+            <button
+              type="button"
+              disabled={amendBusy !== null}
+              onClick={() => onAmend({ action: "reset_all" }, "reset-all")}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold text-white transition-opacity disabled:opacity-60"
+              style={{ backgroundColor: ERROR_RED }}
+            >
+              {amendBusy === "reset-all" ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <AlertTriangle className="h-4 w-4" />
+              )}
+              Confirmer la réinitialisation complète
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled={amendBusy !== null}
+              onClick={() => onRequestConfirm("reset-all")}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-60"
+              style={{ borderColor: ERROR_RED, color: ERROR_RED }}
+            >
+              <RotateCcw className="h-4 w-4" />
+              Réinitialiser le badge (effacer tous les scans)
+            </button>
+          )}
+          <p className="text-center text-[11px]" style={{ color: TEXT_MUTED }}>
+            À utiliser si un badge a été scanné par erreur — le participant
+            repart à zéro et peut être rescané normalement.
+          </p>
         </div>
       )}
     </div>
@@ -781,11 +1022,20 @@ function HistoryRow({
   emoji,
   label,
   time,
+  busy,
+  confirming,
+  onAmendTap,
 }: {
   emoji: string;
   label: string;
   time: string;
   color: string;
+  /** An amend request is running on this row. */
+  busy?: boolean;
+  /** Two-tap confirm armed on this row. */
+  confirming?: boolean;
+  /** Present = the row is amendable (admin can cancel this scan). */
+  onAmendTap?: () => void;
 }) {
   return (
     <div
@@ -801,6 +1051,34 @@ function HistoryRow({
       <span className="text-[12px] tabular-nums" style={{ color: TEXT_MUTED }}>
         {time}
       </span>
+      {onAmendTap &&
+        (confirming ? (
+          <button
+            type="button"
+            onClick={onAmendTap}
+            disabled={busy}
+            className="inline-flex h-9 shrink-0 items-center gap-1 rounded-full px-3 text-[11px] font-bold text-white transition-transform active:scale-95"
+            style={{ backgroundColor: ERROR_RED }}
+          >
+            {busy ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Undo2 className="h-3.5 w-3.5" />
+            )}
+            Confirmer ?
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={onAmendTap}
+            aria-label={`Annuler : ${label} de ${time}`}
+            title="Annuler ce scan"
+            className="-my-2 -mr-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors"
+            style={{ color: TEXT_MUTED }}
+          >
+            <Undo2 className="h-4 w-4" />
+          </button>
+        ))}
     </div>
   );
 }

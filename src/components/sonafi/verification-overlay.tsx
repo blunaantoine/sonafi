@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle,
+  ArrowLeft,
   Check,
   Loader2,
   WifiOff,
@@ -109,11 +110,18 @@ export interface VerificationResultOverlayProps {
   overlay: OverlayState | null;
   /** Called when the user taps "Scanner le suivant" (or the auto-dismiss fires). */
   onDismiss: () => void;
+  /**
+   * Called when the user taps the overlay's back arrow. The full-screen
+   * overlay covers the page header while visible — without this button the
+   * header back arrow is unreachable for as long as the overlay is up.
+   */
+  onBack?: () => void;
 }
 
 export function VerificationResultOverlay({
   overlay,
   onDismiss,
+  onBack,
 }: VerificationResultOverlayProps) {
   return (
     <AnimatePresence>
@@ -123,11 +131,22 @@ export function VerificationResultOverlay({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.18 }}
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center p-8 text-center text-white"
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center p-8 pt-safe text-center text-white"
           style={{ backgroundColor: bgFor(overlay.state) }}
           role="status"
           aria-live="assertive"
         >
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              aria-label="Retour à l'accueil"
+              className="absolute left-5 flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur transition-transform active:scale-95"
+              style={{ top: "max(1.25rem, env(safe-area-inset-top))" }}
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+          )}
           <motion.div
             key={overlay.state}
             initial={{ scale: 0.5, opacity: 0 }}

@@ -68,7 +68,20 @@ export default function Home() {
   // requested from the home page.
   // ---------------------------------------------------------------------
   const layerRef = useRef<string[]>([]);
+  /** One-time: a reload inside a role view leaves a stale sonafiLayer marker
+   *  on the CURRENT history entry. Without clearing it the stack grows one
+   *  "role" entry per reload and the back button needs one extra press (and
+   *  eventually mis-syncs). We wipe the marker once before reconciling; the
+   *  reconciliation below then pushes a fresh entry for the restored role. */
+  const staleClearedRef = useRef(false);
   useEffect(() => {
+    if (!staleClearedRef.current) {
+      staleClearedRef.current = true;
+      if (window.history.state?.sonafiLayer) {
+        window.history.replaceState(null, "");
+      }
+    }
+
     const target: string[] = [];
     if (role !== "home") target.push("role");
     if (gateRole) target.push("gate");
@@ -111,8 +124,15 @@ export default function Home() {
       } else if (top === "role" && current !== "role") {
         // Phone back inside a role view → return to the app home page.
         goHome();
+      } else if (!top && current) {
+        // Forward navigation (or a reload artefact) landed on a stale layer
+        // entry while the app considers itself home: erase the stale marker
+        // so the next back press behaves like a plain history step.
+        window.history.replaceState(null, "");
       }
-      layerRef.current = current ? [current] : [];
+      layerRef.current = window.history.state?.sonafiLayer
+        ? [window.history.state.sonafiLayer as string]
+        : [];
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);

@@ -17,6 +17,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle,
+  ArrowLeft,
   Check,
   Loader2,
   RefreshCw,
@@ -55,6 +56,13 @@ interface ScanResultOverlayProps {
   result: ScanResult | null;
   /** Called when the user taps "Scanner le suivant" / "Réessayer". */
   onScanNext?: () => void;
+  /**
+   * Called when the user taps the overlay's back arrow. The full-screen
+   * overlay covers the page header while it is visible — without this
+   * button the header back arrow is unreachable for as long as the overlay
+   * is up (which felt like "the back button is broken").
+   */
+  onBack?: () => void;
 }
 
 // Short lowercase name used inside sentence fragments like
@@ -161,6 +169,7 @@ function buildTheme(result: ScanResult): OverlayTheme {
 export function ScanResultOverlay({
   result,
   onScanNext,
+  onBack,
 }: ScanResultOverlayProps) {
   return (
     <AnimatePresence>
@@ -171,12 +180,12 @@ export function ScanResultOverlay({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.18 }}
-          className="fixed inset-0 z-50 flex flex-col p-5 text-white"
+          className="fixed inset-0 z-50 flex flex-col p-5 pt-safe text-white"
           style={{ backgroundColor: buildTheme(result).bg }}
           aria-live="assertive"
           role="status"
         >
-          <OverlayContent result={result} onScanNext={onScanNext} />
+          <OverlayContent result={result} onScanNext={onScanNext} onBack={onBack} />
         </motion.div>
       )}
     </AnimatePresence>
@@ -186,20 +195,36 @@ export function ScanResultOverlay({
 function OverlayContent({
   result,
   onScanNext,
+  onBack,
 }: {
   result: ScanResult;
   onScanNext?: () => void;
+  onBack?: () => void;
 }) {
   const theme = buildTheme(result);
   const dayLabel = DAY_LABELS[result.day];
 
   return (
     <>
-      {/* Top bar: "Restauration" + day pill */}
-      <div className="flex items-center justify-between">
-        <span className="text-base font-semibold tracking-tight sm:text-lg">
-          Restauration
-        </span>
+      {/* Top bar: back arrow + "Restauration" on the left, day pill on the
+          right — the arrow mirrors the header's arrow underneath, so the
+          back gesture keeps working while the overlay is up. */}
+      <div className="flex min-h-11 items-center justify-between">
+        <div className="flex items-center gap-2">
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              aria-label="Retour à l'accueil"
+              className="-m-1 flex h-11 w-11 items-center justify-center rounded-full text-white transition-transform active:scale-95"
+            >
+              <ArrowLeft className="h-6 w-6" />
+            </button>
+          )}
+          <span className="text-base font-semibold tracking-tight sm:text-lg">
+            Restauration
+          </span>
+        </div>
         <span
           className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold"
           style={{ backgroundColor: theme.pillBg, color: "#FFFFFF" }}
