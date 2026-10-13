@@ -11,6 +11,11 @@ import {
   RefreshCw,
 } from "lucide-react";
 import type { Html5Qrcode } from "html5-qrcode";
+import {
+  friendlyCameraError,
+  rawErrorLabel,
+} from "@/lib/camera";
+import { decodeQrFromFile } from "@/lib/qr-photo";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -83,27 +88,6 @@ function writeLS(key: string, value: unknown): void {
 }
 
 // ---------------------------------------------------------------------------
-// Friendly camera error translation
-// ---------------------------------------------------------------------------
-
-function friendlyCameraError(err: unknown): string {
-  const msg = err instanceof Error ? err.message : String(err);
-  if (/NotAllowedError|PermissionDenied/i.test(msg)) {
-    return "Accès à la caméra refusé. Ouvrez les réglages du navigateur (icône 🔒 dans la barre d'adresse), autorisez la caméra, puis réessayez.";
-  }
-  if (/NotFoundError|DevicesNotFoundError|CameraNotFound/i.test(msg)) {
-    return "Aucune caméra détectée sur cet appareil. Sur iPhone, utilisez Safari.";
-  }
-  if (/NotReadableError|TrackStartError|NotReadable/i.test(msg)) {
-    return "La caméra est déjà utilisée par une autre application. Fermez-la, puis réessayez.";
-  }
-  if (/InsecureContext|HTTPS|getUserMedia/i.test(msg)) {
-    return "La caméra nécessite une connexion HTTPS sécurisée. Le site doit être servi en HTTPS, pas en HTTP.";
-  }
-  return "Impossible d'activer la caméra. Vérifiez que vous avez autorisé l'accès et que le site est en HTTPS.";
-}
-
-// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -125,6 +109,8 @@ export function VerificationView() {
   const html5Ref = useRef<Html5Qrcode | null>(null);
   const [cameraReady, setCameraReady] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  /** Raw technical error (Name: message) — small print for event-day support. */
+  const [cameraRawError, setCameraRawError] = useState<string | null>(null);
   /** Has the user explicitly requested camera access? (iOS requires a gesture.) */
   const [cameraRequested, setCameraRequested] = useState(false);
 
@@ -291,6 +277,7 @@ export function VerificationView() {
   // ----- startCamera: request permission explicitly, then start html5-qrcode
   const startCamera = useCallback(async () => {
     setCameraError(null);
+    setCameraRawError(null);
     setCameraReady(false);
     setCameraRequested(true);
 
@@ -308,6 +295,7 @@ export function VerificationView() {
       });
       probe.getTracks().forEach((t) => t.stop());
     } catch (err) {
+      setCameraRawError(rawErrorLabel(err));
       setCameraError(friendlyCameraError(err));
       setCameraReady(false);
       return;
@@ -354,6 +342,7 @@ export function VerificationView() {
 
       setCameraReady(true);
     } catch (err) {
+      setCameraRawError(rawErrorLabel(err));
       setCameraError(friendlyCameraError(err));
       setCameraReady(false);
     }
@@ -434,6 +423,34 @@ export function VerificationView() {
       setManualSubmitting(false);
     }
   }, [manualId, recordEntry]);
+
+  // ----- Photo fallback (works even when getUserMedia is blocked) ----------
+  const photoInputRef = useRef<HTMLInputElement | null>(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+
+  const handlePhotoFile = useCallback(
+    async (file: File) => {
+      setPhotoError(null);
+      setPhotoBusy(true);
+      try {
+        const decoded = await decodeQrFromFile(file);
+        if (!decoded || !decoded.trim()) {
+          setPhotoError(
+            "Aucun QR détecté sur cette photo. Approchez-vous du badge, cadrez-le bien et réessayez.",
+          );
+          return;
+        }
+        await recordEntry(decoded.trim());
+      } catch {
+        setPhotoError("Impossible de lire la photo. Réessayez.");
+      } finally {
+        setPhotoBusy(false);
+        if (photoInputRef.current) photoInputRef.current.value = "";
+      }
+    },
+    [recordEntry],
+  );
 
   // ----- Derived -----------------------------------------------------------
   const totalForBar = totalParticipants ?? DEFAULT_TOTAL_PARTICIPANTS;
@@ -575,6 +592,11 @@ export function VerificationView() {
               <p className="max-w-xs text-sm leading-relaxed text-white/90">
                 {cameraError}
               </p>
+              {cameraRawError && (
+                <p className="max-w-xs break-all font-mono text-[10px] leading-snug text-white/50">
+                  {cameraRawError}
+                </p>
+              )}
               <Button
                 type="button"
                 size="default"
@@ -686,7 +708,35 @@ export function VerificationView() {
             Pinned to the bottom of the screen with mt-auto (so it never
             floats mid-screen on tall devices) and pb-safe (so it isn't
             hidden behind the iOS home indicator). */}
-        <div className="mt-auto pb-safe">
+        <div className="mt-auto flex flex-col gap-2 pb-safe">
+          {photoError && (
+            <p className="text-center text-xs text-red-600" role="alert">
+              {photoError}
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={() => photoInputRef.current?.click()}
+            disabled={photoBusy}
+            className="flex h-12 w-full items-center justify-center gap-2 text-sm font-semibold transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-60 sm:text-base"
+            style={{
+              borderRadius: R.pill,
+              backgroundColor: C.verification,
+              color: "#ffffff",
+            }}
+          >
+            {photoBusy ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Lecture de la photo…
+              </>
+            ) : (
+              <>
+                <Camera className="h-5 w-5" strokeWidth={2.2} />
+                Scanner via photo du badge
+              </>
+            )}
+          </button>
           <button
             type="button"
             onClick={() => {
@@ -694,6 +744,7 @@ export function VerificationView() {
               setManualId("");
               setManualOpen(true);
             }}
+            disabled={photoBusy}
             className="flex h-12 w-full items-center justify-center gap-2 bg-white text-sm font-semibold transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:text-base"
             style={{
               borderRadius: R.pill,
@@ -710,6 +761,26 @@ export function VerificationView() {
           </button>
         </div>
       </div>
+
+      {/* ---------------------------------------------------------------
+          Hidden input — photo-based scan fallback (native camera app,
+          no getUserMedia needed)
+         --------------------------------------------------------------- */}
+      <input
+        ref={photoInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (!f) return;
+          if (!f.type.startsWith("image/")) {
+            setPhotoError("Choisissez une image (photo du badge).");
+            return;
+          }
+          void handlePhotoFile(f);
+        }}
+      />
 
       {/* ---------------------------------------------------------------
           Manual ID entry dialog
