@@ -42,6 +42,9 @@ import {
   RefreshCw,
   ScanLine,
   ShieldAlert,
+  SwitchCamera,
+  Video,
+  VideoOff,
 } from "lucide-react";
 import type { Html5Qrcode } from "html5-qrcode";
 import {
@@ -147,6 +150,14 @@ export function ScanTab() {
   const [cameraRawError, setCameraRawError] = useState<string | null>(null);
   /** Has the user explicitly requested camera access? (iOS requires a gesture.) */
   const [cameraRequested, setCameraRequested] = useState(false);
+  /** True while the user manually stopped the scanner. */
+  const [scanPaused, setScanPaused] = useState(false);
+  /** Front/back switch is only offered when several cameras exist. */
+  const [hasMultipleCameras, setHasMultipleCameras] = useState(false);
+  /** One start at a time — guards against double-taps on Activer/Réessayer. */
+  const startingRef = useRef(false);
+  /** Device id of the live camera (for stop/resume and front/back switch). */
+  const currentCamIdRef = useRef<string | null>(null);
 
   // ----- Photo fallback (works even when getUserMedia is blocked) ----------
   const photoInputRef = useRef<HTMLInputElement | null>(null);
@@ -286,92 +297,199 @@ export function ScanTab() {
     (decoded: string) => {
       if (!scanningRef.current) return;
       if (inFlightRef.current) return;
+      const value = decoded.trim();
+      if (!value) return; // blank frame decode — nothing to process
       const now = Date.now();
       const last = lastScanRef.current;
-      if (last.id === decoded && now - last.ts < DEBOUNCE_MS) return;
-      lastScanRef.current = { id: decoded, ts: now };
-      void recordPause(decoded);
+      if (last.id === value && now - last.ts < DEBOUNCE_MS) return;
+      lastScanRef.current = { id: value, ts: now };
+      void recordPause(value);
     },
     [recordPause],
   );
 
-  // ----- startCamera: request permission explicitly, then start html5-qrcode
-  const startCamera = useCallback(async () => {
-    setCameraError(null);
-    setCameraRawError(null);
-    setCameraReady(false);
-    setCameraRequested(true);
+  // ----- startCamera: request permission explicitly, then start html5-qrcode.
+  // Guarded by startingRef so double-taps can never spawn two instances. ----
+  const startCamera = useCallback(
+    async (deviceId?: string) => {
+      if (startingRef.current) return; // one start at a time
+      startingRef.current = true;
+      try {
+        setCameraError(null);
+        setCameraRawError(null);
+        setCameraReady(false);
+        setScanPaused(false);
+        setCameraRequested(true);
 
-    // Step 1: explicitly request camera permission via the native API. This
-    // triggers the browser's permission prompt on mobile (iOS Safari, Android
-    // Chrome) and gives a clear error if denied — before html5-qrcode starts.
-    try {
-      if (!navigator.mediaDevices?.getUserMedia) {
-        setCameraError(
-          "La caméra n'est pas supportée par ce navigateur. Sur iPhone, utilisez Safari.",
-        );
-        return;
+        // Step 1: explicitly request camera permission via the native API.
+        // This triggers the browser's permission prompt on mobile (iOS Safari,
+        // Android Chrome) and gives a clear error if denied — before
+        // html5-qrcode starts. The native API accepts { ideal } constraints.
+        const probeConstraints: MediaTrackConstraints = deviceId
+          ? { deviceId: { exact: deviceId } }
+          : { facingMode: { ideal: "environment" } };
+        try {
+          if (!navigator.mediaDevices?.getUserMedia) {
+            setCameraError(
+              "La caméra n'est pas supportée par ce navigateur. Sur iPhone, utilisez Safari.",
+            );
+            return;
+          }
+          const probe = await navigator.mediaDevices.getUserMedia({
+            video: probeConstraints,
+            audio: false,
+          });
+          // Stop the probe stream immediately; html5-qrcode will request its own.
+          probe.getTracks().forEach((t) => t.stop());
+        } catch (err) {
+          setCameraRawError(rawErrorLabel(err));
+          setCameraError(friendlyCameraError(err));
+          setCameraReady(false);
+          return;
+        }
+
+        // Step 2: start html5-qrcode now that permission is granted.
+        try {
+          const { Html5Qrcode } = await import("html5-qrcode");
+
+          // List the cameras once to expose the front/back switch when useful.
+          try {
+            const cams = await Html5Qrcode.getCameras();
+            setHasMultipleCameras(cams.length > 1);
+          } catch {
+            /* labels unavailable — the switch simply stays hidden */
+          }
+
+          // Tear down any previous instance before starting again.
+          if (html5Ref.current) {
+            try {
+              if (html5Ref.current.isScanning) await html5Ref.current.stop();
+            } catch {
+              /* ignore */
+            }
+            try {
+              html5Ref.current.clear();
+            } catch {
+              /* ignore */
+            }
+            html5Ref.current = null;
+          }
+
+          const instance = new Html5Qrcode(QR_READER_ID, {
+            verbose: false,
+          });
+          html5Ref.current = instance;
+
+          const config = {
+            fps: 10,
+            qrbox: (vw: number, vh: number) => {
+              const minEdge = Math.min(vw, vh);
+              const size = Math.max(160, Math.floor(minEdge * 0.7));
+              return { width: size, height: size };
+            },
+          };
+
+          // html5-qrcode's createVideoConstraints() only accepts a device-id
+          // string, { facingMode: "user"|"environment" } or { facingMode:
+          // { exact } }. Passing { ideal } threw "'facingMode' should be
+          // string or object with exact as key." The plain string form maps
+          // to a soft constraint — rear camera preferred, graceful fallback
+          // to whatever camera exists (laptops).
+          const startConfig: string | MediaTrackConstraints =
+            deviceId ?? { facingMode: "environment" };
+
+          await instance.start(startConfig, config, handleScan, () => {
+            /* per-frame decode errors are noisy — ignore */
+          });
+
+          // Remember which physical camera is live (for stop/resume + switch).
+          const video = document.querySelector<HTMLVideoElement>(
+            `#${QR_READER_ID} video`,
+          );
+          const track =
+            video?.srcObject instanceof MediaStream
+              ? video.srcObject.getVideoTracks()[0]
+              : undefined;
+          currentCamIdRef.current = track?.getSettings().deviceId ?? null;
+
+          scanningRef.current = true;
+          setCameraReady(true);
+        } catch (err) {
+          setCameraRawError(rawErrorLabel(err));
+          setCameraError(friendlyCameraError(err));
+          setCameraReady(false);
+        }
+      } finally {
+        startingRef.current = false;
       }
-      // Probe the back camera — this is what triggers the permission prompt.
-      const probe = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: "environment" } },
-        audio: false,
-      });
-      // Stop the probe stream immediately; html5-qrcode will request its own.
-      probe.getTracks().forEach((t) => t.stop());
-    } catch (err) {
-      setCameraRawError(rawErrorLabel(err));
-      setCameraError(friendlyCameraError(err));
-      setCameraReady(false);
-      return;
-    }
+    },
+    [handleScan],
+  );
 
-    // Step 2: start html5-qrcode now that permission is granted.
+  // ----- stopCamera: full, clean teardown (releases the camera tracks) ----
+  const stopCamera = useCallback(async () => {
+    const inst = html5Ref.current;
+    html5Ref.current = null;
+    setCameraReady(false);
+    setScanPaused(true);
+    scanningRef.current = false;
+    if (!inst) return;
+    try {
+      if (inst.isScanning) await inst.stop();
+    } catch {
+      /* ignore */
+    }
+    try {
+      inst.clear();
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  // ----- toggleScan: stop / resume from the viewfinder control ------------
+  const toggleScan = useCallback(async () => {
+    if (html5Ref.current) {
+      await stopCamera();
+    } else {
+      await startCamera(currentCamIdRef.current ?? undefined);
+    }
+  }, [startCamera, stopCamera]);
+
+  // ----- switchCamera: restart on the next available device ---------------
+  const switchCamera = useCallback(async () => {
+    if (startingRef.current) return;
     try {
       const { Html5Qrcode } = await import("html5-qrcode");
-
-      // Tear down any previous instance before starting again.
-      if (html5Ref.current) {
-        try {
-          if (html5Ref.current.isScanning) await html5Ref.current.stop();
-        } catch {
-          /* ignore */
-        }
-        try {
-          html5Ref.current.clear();
-        } catch {
-          /* ignore */
-        }
-        html5Ref.current = null;
-      }
-
-      const instance = new Html5Qrcode(QR_READER_ID, {
-        verbose: false,
-      });
-      html5Ref.current = instance;
-
-      const config = {
-        fps: 10,
-        qrbox: (vw: number, vh: number) => {
-          const minEdge = Math.min(vw, vh);
-          const size = Math.max(160, Math.floor(minEdge * 0.7));
-          return { width: size, height: size };
-        },
-      };
-
-      const startConfig = { facingMode: { ideal: "environment" as const } };
-
-      await instance.start(startConfig, config, handleScan, () => {
-        /* per-frame decode errors are noisy — ignore */
-      });
-
-      setCameraReady(true);
-    } catch (err) {
-      setCameraRawError(rawErrorLabel(err));
-      setCameraError(friendlyCameraError(err));
-      setCameraReady(false);
+      const cams = await Html5Qrcode.getCameras();
+      if (cams.length < 2) return;
+      const next =
+        cams.find((c) => c.id !== currentCamIdRef.current) ?? cams[0];
+      currentCamIdRef.current = next.id;
+      await startCamera(next.id);
+    } catch {
+      /* ignore — enumeration failed, keep the current stream */
     }
-  }, [handleScan]);
+  }, [startCamera]);
+
+  // ----- App going to background: pause the scan loop, resume on return ----
+  useEffect(() => {
+    const onVisibility = () => {
+      const inst = html5Ref.current;
+      if (!inst) return;
+      try {
+        if (document.hidden) {
+          if (inst.isScanning) inst.pause(true);
+        } else if (cameraReady && !overlay && !scanPaused) {
+          inst.resume();
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () =>
+      document.removeEventListener("visibilitychange", onVisibility);
+  }, [cameraReady, overlay, scanPaused]);
 
   // ----- handlePhotoFile: decode a badge photo with jsQR (no getUserMedia)
   const handlePhotoFile = useCallback(
@@ -408,6 +526,7 @@ export function ScanTab() {
   useEffect(() => {
     return () => {
       if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+      startingRef.current = false;
       const inst = html5Ref.current;
       html5Ref.current = null;
       scanningRef.current = false;
@@ -492,8 +611,12 @@ export function ScanTab() {
               cameraError={cameraError}
               cameraRawError={cameraRawError}
               cameraRequested={cameraRequested}
+              scanPaused={scanPaused}
+              hasMultipleCameras={hasMultipleCameras}
               onActivate={() => void startCamera()}
               onRetry={() => void startCamera()}
+              onToggle={() => void toggleScan()}
+              onSwitch={() => void switchCamera()}
             />
           </section>
 
@@ -643,8 +766,14 @@ interface ViewfinderCardProps {
   cameraRawError: string | null;
   /** Has the user tapped "Activer la caméra" at least once? */
   cameraRequested: boolean;
+  /** True when the user manually stopped the scanner. */
+  scanPaused: boolean;
+  /** Offer the front/back switch only when several cameras exist. */
+  hasMultipleCameras: boolean;
   onActivate: () => void;
   onRetry: () => void;
+  onToggle: () => void;
+  onSwitch: () => void;
 }
 
 function ViewfinderCard({
@@ -652,8 +781,12 @@ function ViewfinderCard({
   cameraError,
   cameraRawError,
   cameraRequested,
+  scanPaused,
+  hasMultipleCameras,
   onActivate,
   onRetry,
+  onToggle,
+  onSwitch,
 }: ViewfinderCardProps) {
   return (
     <div
@@ -731,11 +864,61 @@ function ViewfinderCard({
         </div>
       )}
 
+      {/* Stop / switch controls — top-right, only while the camera is live */}
+      {cameraReady && !cameraError && (
+        <div className="absolute right-3 top-3 z-10 flex gap-2">
+          <button
+            type="button"
+            onClick={onToggle}
+            aria-label="Arrêter le scan"
+            title="Arrêter le scan"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur transition-colors hover:bg-black/60"
+          >
+            <VideoOff className="h-5 w-5" />
+          </button>
+          {hasMultipleCameras && (
+            <button
+              type="button"
+              onClick={onSwitch}
+              aria-label="Changer de caméra"
+              title="Changer de caméra"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur transition-colors hover:bg-black/60"
+            >
+              <SwitchCamera className="h-5 w-5" />
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Initialising spinner (after the user tapped activate, while starting) */}
-      {cameraRequested && !cameraReady && !cameraError && (
+      {cameraRequested && !cameraReady && !cameraError && !scanPaused && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white/85">
           <Loader2 className="h-8 w-8 animate-spin" />
           <p className="text-sm">Activation de la caméra…</p>
+        </div>
+      )}
+
+      {/* Scanner manually stopped — offer a clean resume */}
+      {scanPaused && !cameraError && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center text-white">
+          <Video
+            className="h-10 w-10"
+            style={{ color: C.restaurationSoft }}
+            strokeWidth={1.8}
+          />
+          <p className="text-sm font-medium">Scan arrêté</p>
+          <p className="max-w-xs text-xs text-white/60">
+            La caméra est libérée. Reprenez quand vous êtes prêt.
+          </p>
+          <button
+            type="button"
+            onClick={onToggle}
+            className="mt-1 inline-flex min-h-12 items-center gap-2 rounded-full bg-white px-6 py-3 text-base font-bold shadow-md transition-transform active:scale-95"
+            style={{ color: C.restauration }}
+          >
+            <Video className="h-5 w-5" />
+            Reprendre le scan
+          </button>
         </div>
       )}
 
