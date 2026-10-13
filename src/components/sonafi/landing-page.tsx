@@ -58,9 +58,13 @@ const ROLE_CARDS: RoleCardDef[] = [
 /**
  * Bouton « Gestionnaire » masqué (demande du 14/02) : la carte n'apparaît plus
  * sur la page d'accueil. L'espace gestionnaire reste accessible de façon
- * discrète via l'URL  https://<domaine>/?gestionnaire  — le code PIN est
- * toujours demandé (voir page.tsx). Remettre `true` ici pour réafficher la
- * carte (aucun autre changement nécessaire).
+ * discrète de deux manières — le code PIN est toujours demandé (voir
+ * page.tsx) :
+ *   1. l'URL  https://<domaine>/?gestionnaire  (ou #gestionnaire)
+ *   2. un tap sur le mot « aux » du footer « Accès réservé aux équipes du
+ *      sommet » (cible invisible — voir le footer plus bas).
+ * Remettre `true` ici pour réafficher la carte (aucun autre changement
+ * nécessaire).
  */
 const SHOW_GESTIONNAIRE_CARD = false;
 
@@ -252,9 +256,32 @@ export function LandingPage({
       </motion.main>
 
       {/* ---------------- Footer ---------------- */}
+      {/* Accès gestionnaire caché : le mot « aux » est un <button> stylé à
+          l'identique du texte autour (même couleur, même taille, aucun
+          soulignement ni titre au survol). La zone de tap est élargie par un
+          padding transparent compensé par des marges négatives — la mise en
+          page ne bouge pas d'un pixel. Le PIN gestionnaire reste requis. */}
       <footer className="mt-auto px-5 pb-safe pt-2 text-center">
         <p style={{ color: C.textSecondary, fontSize: 13 }}>
-          Accès réservé aux équipes du sommet
+          Accès réservé{" "}
+          <button
+            type="button"
+            onClick={onSelectAdmin}
+            aria-label="Espace gestionnaire"
+            className="cursor-pointer select-none touch-manipulation"
+            style={{
+              font: "inherit",
+              color: "inherit",
+              backgroundColor: "transparent",
+              border: "none",
+              padding: "0.6rem 0.3rem",
+              margin: "-0.6rem -0.3rem",
+              WebkitTapHighlightColor: "transparent",
+            }}
+          >
+            aux
+          </button>{" "}
+          équipes du sommet
         </p>
       </footer>
     </div>

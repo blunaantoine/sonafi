@@ -24,11 +24,14 @@ export default function Home() {
 
   // ---------------------------------------------------------------------
   // Discreet gestionnaire access. The "Gestionnaire" card is hidden on the
-  // landing page (see SHOW_GESTIONNAIRE_CARD in landing-page.tsx); opening
+  // landing page (see SHOW_GESTIONNAIRE_CARD in landing-page.tsx); the gate
+  // opens either via
   //   /?gestionnaire   or   /#gestionnaire
-  // opens the admin PIN gate instead. The secret key is wiped from the URL
+  // or by tapping the word "aux" in the landing footer sentence
+  // "Accès réservé aux équipes du sommet" (invisible button — see the
+  // footer in landing-page.tsx). The secret key is wiped from the URL
   // immediately, and the gate never reopens over an already-active manager
-  // session (role "admin" in localStorage).
+  // session (role "admin" in localStorage). The PIN is always required.
   // ---------------------------------------------------------------------
   useEffect(() => {
     const isGestionnaireAccess =
